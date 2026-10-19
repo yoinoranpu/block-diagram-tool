@@ -1087,3 +1087,250 @@ footer p {
     font-size: 10px;
   }
 }
+/* Diagram viewport: fit first, then pan/zoom without scrolling the page. */
+.canvas-shell {
+  position: relative;
+  background: #fff;
+}
+.view-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-top: 1px solid #e9eef5;
+  background: #fcfdff;
+}
+.view-controls > div {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.view-controls button {
+  font-size: 11px;
+  padding: 4px 9px;
+  min-height: 34px;
+}
+.view-controls output {
+  font-size: 10px;
+  color: #6d809a;
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.canvas-shell .canvas-scroll {
+  overflow: hidden;
+  position: relative;
+  height: clamp(290px, 46vh, 430px);
+}
+.canvas-shell .diagram-canvas,
+.candidate-section .canvas-shell .diagram-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  touch-action: none;
+}
+.canvas-shell.readonly .canvas-scroll {
+  height: 350px;
+  margin: 0;
+  border-radius: 0;
+  border-inline: 0;
+}
+.view-hint {
+  font-size: 10px;
+  color: #7d8fa4;
+  padding: 5px 12px;
+  background: #fcfdff;
+  border-bottom: 1px solid #edf1f6;
+}
+.wire-underlay {
+  fill: none;
+  stroke: #fafcff;
+  stroke-width: 7;
+  pointer-events: none;
+}
+.wire {
+  stroke: #53677f;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.edge-group:hover .wire,
+.edge-group.highlighted .wire {
+  stroke: #2563eb;
+  stroke-width: 3;
+}
+.edge-group:hover .wire-underlay,
+.edge-group.highlighted .wire-underlay {
+  stroke: #eaf2ff;
+  stroke-width: 9;
+}
+.sum-body,
+.selected .sum-body {
+  fill: #fff;
+}
+.port-dot.output-port {
+  fill: #6f96cc;
+  stroke: #6f96cc;
+}
+.port-dot.output-port.active {
+  fill: #2563eb;
+  stroke: #2563eb;
+}
+.canvas-warning {
+  padding: 8px 12px;
+  color: #996328;
+  background: #fff8eb;
+  font-size: 11px;
+  margin: 0;
+}
+.keypad-details > summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: #426da9;
+  margin: 10px 0 4px;
+}
+.keypad-details.expanded > summary {
+  display: none;
+}
+.inline-validation,
+.input-issue {
+  font-size: 12px;
+  color: #ad4853;
+  background: #fff4f4;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 8px 0;
+}
+input[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 1px #e9b1b7;
+  background: #fffafa;
+}
+.fill-denominator {
+  font-size: 11px;
+  color: #2164c7;
+  background: #eff6ff;
+}
+.inspector.active {
+  position: fixed;
+  z-index: 60;
+  right: 22px;
+  top: 100px;
+  width: 330px;
+  max-height: calc(100dvh - 125px);
+  overflow: auto;
+  border: 1px solid #cfdbec;
+  border-radius: 12px;
+  box-shadow: 0 12px 60px #23375025;
+  padding: 45px 18px 18px;
+  overscroll-behavior: contain;
+}
+.close-inspector {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  border: 0;
+  min-height: 29px;
+  color: #54749d;
+  font-size: 11px;
+  padding: 3px 8px;
+}
+.inspector.active .inspector-title {
+  margin-bottom: 10px;
+}
+.inspector.active .name-field {
+  margin-bottom: 8px;
+}
+.inspector.active .fraction-fields input {
+  min-height: 42px;
+}
+.inspector.active .field-hint {
+  font-size: 10px;
+}
+.reverse-button {
+  font-size: 11px;
+  padding: 3px 10px;
+  margin-top: 8px;
+}
+@media (max-width: 850px) {
+  .inspector.active {
+    right: 12px;
+    top: auto;
+    bottom: 12px;
+    width: 330px;
+    max-height: 55dvh;
+  }
+  .canvas-shell .canvas-scroll {
+    height: 350px;
+  }
+}
+@media (max-width: 480px) {
+  .inspector.active {
+    left: 6px;
+    right: 6px;
+    bottom: 0;
+    width: auto;
+    max-height: 48dvh;
+    border-radius: 13px 13px 0 0;
+    padding: 40px 14px max(12px, env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 35px #243b5c22;
+  }
+  .inspector.active .name-field {
+    font-size: 11px;
+    margin-bottom: 5px;
+  }
+  .inspector.active .name-field input {
+    padding: 5px 8px;
+  }
+  .inspector.active .inspector-title {
+    margin-bottom: 6px;
+  }
+  .inspector.active .inspector-title button {
+    min-height: 32px;
+  }
+  .inspector.active .field-hint {
+    display: none;
+  }
+  .inspector.active .move-tools {
+    margin-top: 7px;
+  }
+  .inspector.active .move-tools button {
+    min-width: 36px;
+    min-height: 34px;
+  }
+  .canvas-shell .canvas-scroll,
+  .canvas-shell.readonly .canvas-scroll {
+    height: 300px;
+  }
+  .view-controls {
+    padding: 7px 8px;
+    gap: 5px;
+  }
+  .view-controls button {
+    min-height: 36px;
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  .view-controls output {
+    min-width: 32px;
+  }
+  .view-hint {
+    font-size: 9px;
+    padding: 6px 9px;
+  }
+  .calculate-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    box-shadow: 0 -3px 12px #344b7010;
+  }
+}
+
+.name-field {
+  white-space: nowrap;
+}
+
+.diagram-node.invalid .node-body {
+  stroke: #c95c70;
+  fill: #fff9fa;
+}

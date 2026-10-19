@@ -129,9 +129,24 @@ describe("係数条件と結合ループ", () => {
   });
 });
 
-it('展開で300文字を超える式も単一ブロックとして生成する', () => {
-  const result = generate('K', '(s+a+b+c)^6');
-  expect(result.candidates[0].diagram.nodes[1].den).toBe('(s+a+b+c)^6');
-  expect(equal(result.candidates[0].result.value,parse('K/(s+a+b+c)^6'))).toBe(true);
+it("展開で300文字を超える式も単一ブロックとして生成する", () => {
+  const result = generate("K", "(s+a+b+c)^6");
+  expect(result.candidates[0].diagram.nodes[1].den).toBe("(s+a+b+c)^6");
+  expect(equal(result.candidates[0].result.value, parse("K/(s+a+b+c)^6"))).toBe(
+    true,
+  );
   expect(result.limitations.length).toBeGreaterThan(0);
+});
+
+it("分母の未入力はブロック名と修正方法を示し、対象IDを返す", () => {
+  const d = example("series");
+  d.nodes.find((n) => n.id === "g")!.den = "";
+  try {
+    solve(d);
+    throw new Error("expected failure");
+  } catch (error) {
+    expect((error as Error).message).toContain("「G」の分母");
+    expect((error as Error).message).toContain("分母に 1");
+    expect((error as Error & { nodeId: string }).nodeId).toBe("g");
+  }
 });

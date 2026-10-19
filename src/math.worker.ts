@@ -38,6 +38,7 @@ self.onmessage = (
   } catch (error) {
     self.postMessage({
       id,
+      nodeId: (error as { nodeId?: string }).nodeId,
       error:
         error instanceof Error
           ? error.message

@@ -99,13 +99,11 @@ test("JSONの書き出し・読み込みと不正データの拒否", async ({ p
   await expect(page.locator(".diagram-node")).toHaveCount(4);
   await page.locator("input[type=file]").setInputFiles(path!);
   await expect(page.locator(".diagram-node")).toHaveCount(6);
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "bad.json",
-      mimeType: "application/json",
-      buffer: Buffer.from('{"version":2}'),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "bad.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"version":2}'),
+  });
   await expect(page.locator(".error")).toContainText("対応していないJSON形式");
   await expect(page.locator(".diagram-node")).toHaveCount(6);
 });
@@ -120,4 +118,106 @@ test("不正な式は答えを作らずエラーを表示、画面幅を維持",
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+test("式の入力欄が画面内に開き、空の分母を修正できる", async ({ page }) => {
+  await page.getByRole("button", { name: "直列", exact: true }).click();
+  await page.getByRole("button", { name: "伝達関数 G", exact: true }).click();
+  const field = page.getByLabel("選択ブロックの分母");
+  const box = await field.boundingBox();
+  expect(box).toBeTruthy();
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  await field.fill("");
+  await expect(page.locator(".inline-validation")).toContainText(
+    "分母が未入力",
+  );
+  await page.getByRole("button", { name: "編集欄を閉じる" }).click();
+  await page.getByRole("button", { name: "全体の伝達関数を求める" }).click();
+  await expect(page.locator(".input-issue")).toContainText("「G」の分母");
+  await page.getByRole("button", { name: "分母を1にする" }).click();
+  await page.getByLabel("選択ブロックの分子").fill("2");
+  await page.getByRole("button", { name: "編集欄を閉じる" }).click();
+  await page.getByRole("button", { name: "全体の伝達関数を求める" }).click();
+  await expect(page.locator(".result-status")).toBeVisible();
+});
+test("白丸の加算点、拡大縮小と全体表示、全体のPNG・SVG保存", async ({
+  page,
+}) => {
+  expect(await page.locator(".sum-body").count()).toBe(1);
+  await expect(page.locator(".diagram-canvas")).not.toContainText("Σ");
+  const canvas = page.locator(".diagram-canvas");
+  const before = await canvas.getAttribute("viewBox");
+  await page.getByRole("button", { name: "拡大", exact: true }).click();
+  const zoomed = await canvas.getAttribute("viewBox");
+  expect(zoomed).not.toBe(before);
+  await page.getByRole("button", { name: "縮小", exact: true }).click();
+  await page.getByRole("button", { name: "全体表示", exact: true }).click();
+  expect(await canvas.getAttribute("viewBox")).toBe(before);
+  for (const format of ["PNG", "SVG"]) {
+    const downloadPromise = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: `${format}保存`, exact: true })
+      .click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe(
+      `control-diagram.${format.toLowerCase()}`,
+    );
+    const path = await download.path();
+    expect(path).toBeTruthy();
+    const { readFile } = await import("node:fs/promises");
+    const bytes = await readFile(path!);
+    if (format === "PNG")
+      expect([...bytes.subarray(0, 8)]).toEqual([
+        137, 80, 78, 71, 13, 10, 26, 10,
+      ]);
+    else {
+      const xml = bytes.toString();
+      expect(xml).toContain("viewBox=");
+      expect(xml).not.toContain('class="port"');
+      expect(xml).not.toContain("Σ");
+    }
+  }
+});
+
+test("2本指で線図だけを拡大し、全体表示で戻せる", async ({ page }) => {
+  const svg = page.locator(".diagram-canvas");
+  await svg.scrollIntoViewIfNeeded();
+  const box = (await svg.boundingBox())!,
+    center = box.x + box.width / 2,
+    y = box.y + 30;
+  const before = await svg.getAttribute("viewBox"),
+    nodes = await page
+      .locator(".diagram-node")
+      .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("transform")));
+  const session = await page.context().newCDPSession(page);
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [
+      { x: center - 25, y, id: 1 },
+      { x: center + 25, y, id: 2 },
+    ],
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [
+      { x: center - 60, y, id: 1 },
+      { x: center + 60, y, id: 2 },
+    ],
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect.poll(() => svg.getAttribute("viewBox")).not.toBe(before);
+  const after = (await svg.getAttribute("viewBox"))!.split(" ").map(Number);
+  expect(after[2]).toBeLessThan(Number(before!.split(" ")[2]));
+  expect(
+    await page
+      .locator(".diagram-node")
+      .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("transform"))),
+  ).toEqual(nodes);
+  await page.getByRole("button", { name: "全体表示", exact: true }).click();
+  expect(await svg.getAttribute("viewBox")).toBe(before);
+  await session.detach();
 });

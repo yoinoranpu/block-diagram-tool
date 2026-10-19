@@ -8,6 +8,7 @@ export type DiagramNode = {
   y: number;
   num: string;
   den: string;
+  reversed?: boolean;
 };
 export type Edge = { id: string; from: string; to: string; sign: 1 | -1 };
 export type Diagram = { nodes: DiagramNode[]; edges: Edge[] };
@@ -39,6 +40,7 @@ export function validateDiagram(value: unknown): Diagram {
       n.y < 0 ||
       n.y > 600 ||
       typeof n.num !== "string" ||
+      (n.reversed !== undefined && typeof n.reversed !== "boolean") ||
       typeof n.den !== "string" ||
       n.num.length > 300 ||
       n.den.length > 300
@@ -156,5 +158,10 @@ export function example(
     d.nodes.push(node("block", "j", 480, 70, "b", "s+1"));
     d.edges.push(edge("p", "j"), edge("j", "q", -1));
   }
+  d.nodes
+    .filter((n) => n.id === "h" || n.id === "j")
+    .forEach((n) => {
+      n.reversed = true;
+    });
   return d;
 }
