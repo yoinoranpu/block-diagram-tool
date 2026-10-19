@@ -42,23 +42,18 @@ function sumSides(d: Diagram): Map<string, Side> {
   const out = new Map<string, Side>();
   for (const n of d.nodes.filter((n) => n.kind === "sum")) {
     const incoming = d.edges.filter((e) => e.to === n.id);
-    const taken = new Set<Side>();
-    // Give forward inputs priority on the left; returns get distinct top/bottom ports.
-    const ordered = [...incoming].sort((a, b) => {
-      const na = d.nodes.find((n) => n.id === a.from)!,
-        nb = d.nodes.find((n) => n.id === b.from)!;
-      return Number(nb.x < n.x) - Number(na.x < n.x);
-    });
-    for (const e of ordered) {
+    for (const e of incoming) {
       const source = d.nodes.find((v) => v.id === e.from)!;
-      const preferences: Side[] =
-        source.x < n.x
-          ? ["left", "top", "bottom"]
+      // Inputs on the same side get distinct nearby ports. Do not force a
+      // return arriving from above to travel under the entire diagram.
+      const side: Side =
+        source.x < n.x - 50 && Math.abs(source.y - n.y) < 90
+          ? "left"
           : source.y < n.y
-            ? ["top", "bottom", "left"]
-            : ["bottom", "top", "left"];
-      const side = preferences.find((s) => !taken.has(s)) ?? preferences[0];
-      taken.add(side);
+            ? "top"
+            : source.y > n.y
+              ? "bottom"
+              : "left";
       out.set(e.id, side);
     }
   }
@@ -86,6 +81,8 @@ function findPath(
   end: Point,
   obstacles: { x1: number; y1: number; x2: number; y2: number }[],
   used: Point[][],
+  lead?: Point,
+  tail?: Point,
 ): Point[] | undefined {
   const xs = [
     ...new Set([
@@ -103,7 +100,7 @@ function findPath(
       -25,
       645,
       ...obstacles.flatMap((r) => [r.y1 - 6, r.y2 + 6]),
-      ...used.flatMap((path, i) => path.map((p) => p.y + (i % 2 ? 9 : -9))),
+      ...used.flatMap((path) => path.flatMap((p) => [p.y - 24, p.y + 24])),
     ]),
   ].sort((a, b) => a - b);
   const w = xs.length,
@@ -135,7 +132,10 @@ function findPath(
           Math.min(Math.max(a.y, b.y), Math.max(c.y, d.y)) >
             Math.max(Math.min(a.y, b.y), Math.min(c.y, d.y))
         )
-          cost += 70;
+          cost +=
+            8 *
+            (Math.min(Math.max(a.y, b.y), Math.max(c.y, d.y)) -
+              Math.max(Math.min(a.y, b.y), Math.min(c.y, d.y)));
         else if (
           a.y === b.y &&
           c.y === d.y &&
@@ -143,7 +143,10 @@ function findPath(
           Math.min(Math.max(a.x, b.x), Math.max(c.x, d.x)) >
             Math.max(Math.min(a.x, b.x), Math.min(c.x, d.x))
         )
-          cost += 70;
+          cost +=
+            8 *
+            (Math.min(Math.max(a.x, b.x), Math.max(c.x, d.x)) -
+              Math.max(Math.min(a.x, b.x), Math.min(c.x, d.x)));
         else if (
           a.x === b.x &&
           c.y === d.y &&
@@ -152,7 +155,7 @@ function findPath(
           c.y > Math.min(a.y, b.y) &&
           c.y < Math.max(a.y, b.y)
         )
-          cost += 24;
+          cost += 50;
         else if (
           a.y === b.y &&
           c.x === d.x &&
@@ -161,10 +164,30 @@ function findPath(
           c.x > Math.min(a.x, b.x) &&
           c.x < Math.max(a.x, b.x)
         )
-          cost += 24;
+          cost += 50;
       }
     return cost;
   };
+  // Prefer unobstructed straight/L paths. Grid density must not add bends.
+  const options: Point[][] = [];
+  if (start.x === end.x || start.y === end.y) options.push([start, end]);
+  options.push(
+    [start, { x: end.x, y: start.y }, end],
+    [start, { x: start.x, y: end.y }, end],
+  );
+  const simple = options
+    .map(simplify)
+    .filter((path) =>
+      path
+        .slice(1)
+        .every((p, i) => clear(path[i], p) && congestion(path[i], p) === 0),
+    )
+    .sort(
+      (a, b) =>
+        simplify([lead ?? start, ...a, tail ?? end]).length -
+        simplify([lead ?? start, ...b, tail ?? end]).length,
+    );
+  if (simple.length) return simple[0];
   type State = {
     id: number;
     x: number;
@@ -242,7 +265,7 @@ function findPath(
           cur.g +
           Math.abs(a.x - b.x) +
           Math.abs(a.y - b.y) +
-          (cur.dir && cur.dir !== dir ? 30 : 0) +
+          (cur.dir && cur.dir !== dir ? 65 : 0) +
           congestion(a, b),
         next = id(x, y, dir);
       if (g >= (distance.get(next) ?? Infinity)) continue;
@@ -312,12 +335,64 @@ export function routeEdges(diagram: Diagram): RoutedEdge[] {
         }
       }
     }
+    const inputIndex =
+      b.kind === "sum"
+        ? diagram.edges
+            .filter((e) => e.to === b.id && sides.get(e.id) === toSide)
+            .indexOf(edge)
+        : 0;
+    const terminalLength = 24 + inputIndex * 24;
     const stubA = {
         x: portPoint(a, fromSide).x + u.x * 24,
         y: start.y + u.y * 24,
       },
-      stubB = { x: end.x + v.x * 24, y: end.y + v.y * 24 };
-    const middle = findPath(stubA, stubB, obstacles, used);
+      stubB = {
+        x: end.x + v.x * terminalLength,
+        y: end.y + v.y * terminalLength,
+      };
+    const occupied = used.filter((_, i) => diagram.edges[i].from !== edge.from);
+    const aligned =
+      (start.y === end.y &&
+        u.x * (end.x - start.x) > 0 &&
+        v.x * (start.x - end.x) > 0) ||
+      (start.x === end.x &&
+        u.y * (end.y - start.y) > 0 &&
+        v.y * (start.y - end.y) > 0);
+    const otherObstacles = diagram.nodes.filter(
+      (n) => n.id !== a.id && n.id !== b.id,
+    );
+    const blockedDirect = otherObstacles.some((n) =>
+      start.y === end.y
+        ? start.y > n.y - halfHeight(n) - 8 &&
+          start.y < n.y + halfHeight(n) + 8 &&
+          Math.max(start.x, end.x) > n.x - halfWidth(n) - 8 &&
+          Math.min(start.x, end.x) < n.x + halfWidth(n) + 8
+        : start.x > n.x - halfWidth(n) - 8 &&
+          start.x < n.x + halfWidth(n) + 8 &&
+          Math.max(start.y, end.y) > n.y - halfHeight(n) - 8 &&
+          Math.min(start.y, end.y) < n.y + halfHeight(n) + 8,
+    );
+    const sharedDirect = occupied.some((path) =>
+      path.slice(1).some((q, i) => {
+        const p = path[i];
+        return (
+          (start.y === end.y &&
+            p.y === q.y &&
+            p.y === start.y &&
+            Math.min(Math.max(start.x, end.x), Math.max(p.x, q.x)) >
+              Math.max(Math.min(start.x, end.x), Math.min(p.x, q.x))) ||
+          (start.x === end.x &&
+            p.x === q.x &&
+            p.x === start.x &&
+            Math.min(Math.max(start.y, end.y), Math.max(p.y, q.y)) >
+              Math.max(Math.min(start.y, end.y), Math.min(p.y, q.y)))
+        );
+      }),
+    );
+    const direct = aligned && !blockedDirect && !sharedDirect;
+    const middle = direct
+      ? [start, end]
+      : findPath(stubA, stubB, obstacles, occupied, start, end);
     // Overlapping user-positioned nodes may have no obstacle-free route. Mark
     // that case visibly instead of implying that automatic routing succeeded.
     const points = simplify([
@@ -327,8 +402,8 @@ export function routeEdges(diagram: Diagram): RoutedEdge[] {
     ]);
     used.push(points);
     const sign = {
-      x: end.x + v.x * 21 + (v.y ? 20 : 0),
-      y: end.y + v.y * 21 + (v.x ? -20 : 0),
+      x: end.x + v.x * (terminalLength - 4) + (v.y ? 16 : 0),
+      y: end.y + v.y * (terminalLength - 4) + (v.x ? -18 : 0),
     };
     return {
       edge,
@@ -357,4 +432,65 @@ export function diagramBounds(diagram: Diagram, routes: RoutedEdge[]) {
     width: Math.max(220, Math.max(...points.map((p) => p.x)) - left + 25),
     height: Math.max(160, Math.max(...points.map((p) => p.y)) - top + 25),
   };
+}
+
+// Place junction dots at actual forks of routes carrying the same signal,
+// rather than guessing a fixed distance from the source port.
+export function signalJunctions(
+  routes: RoutedEdge[],
+  nodes: DiagramNode[],
+): Point[] {
+  const dots = new Map<string, Point>();
+  for (const source of new Set(routes.map((r) => r.edge.from))) {
+    const group = routes.filter((r) => r.edge.from === source);
+    if (group.length < 2) continue;
+    const segments = group.flatMap((r) =>
+      r.points.slice(1).map((b, i) => ({ a: r.points[i], b })),
+    );
+    const candidates = segments.flatMap((s) => [s.a, s.b]);
+    for (const s of segments)
+      for (const t of segments)
+        if (
+          s.a.x === s.b.x &&
+          t.a.y === t.b.y &&
+          s.a.x >= Math.min(t.a.x, t.b.x) &&
+          s.a.x <= Math.max(t.a.x, t.b.x) &&
+          t.a.y >= Math.min(s.a.y, s.b.y) &&
+          t.a.y <= Math.max(s.a.y, s.b.y)
+        )
+          candidates.push({ x: s.a.x, y: t.a.y });
+    for (const p of candidates) {
+      if (
+        nodes.some(
+          (n) =>
+            Math.abs(p.x - n.x) < halfWidth(n) + 1 &&
+            Math.abs(p.y - n.y) < halfHeight(n) + 1,
+        )
+      )
+        continue;
+      const rays = new Set<string>();
+      for (const { a, b } of segments) {
+        if (
+          a.x === b.x &&
+          Math.abs(p.x - a.x) < 1e-6 &&
+          p.y >= Math.min(a.y, b.y) &&
+          p.y <= Math.max(a.y, b.y)
+        ) {
+          if (Math.min(a.y, b.y) < p.y) rays.add("up");
+          if (Math.max(a.y, b.y) > p.y) rays.add("down");
+        }
+        if (
+          a.y === b.y &&
+          Math.abs(p.y - a.y) < 1e-6 &&
+          p.x >= Math.min(a.x, b.x) &&
+          p.x <= Math.max(a.x, b.x)
+        ) {
+          if (Math.min(a.x, b.x) < p.x) rays.add("left");
+          if (Math.max(a.x, b.x) > p.x) rays.add("right");
+        }
+      }
+      if (rays.size >= 3) dots.set(`${p.x},${p.y}`, p);
+    }
+  }
+  return [...dots.values()];
 }

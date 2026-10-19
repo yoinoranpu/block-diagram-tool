@@ -1,3 +1,4 @@
+import { normalizeFormula } from "./normalizeInput";
 import { useEffect, useRef, useState } from "react";
 import { Canvas, labels } from "./Canvas";
 import { Formula } from "./Formula";
@@ -114,7 +115,18 @@ function FractionInput({
             value={num}
             maxLength={300}
             onFocus={() => setActive("n")}
-            onChange={(e) => onChange(e.target.value, den)}
+            onChange={(e) =>
+              onChange(
+                (e.nativeEvent as InputEvent).isComposing
+                  ? e.target.value
+                  : normalizeFormula(e.target.value),
+                den,
+              )
+            }
+            onCompositionEnd={(e) =>
+              onChange(normalizeFormula(e.currentTarget.value), den)
+            }
+            onBlur={(e) => onChange(normalizeFormula(e.target.value), den)}
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
@@ -131,7 +143,18 @@ function FractionInput({
             value={den}
             maxLength={300}
             onFocus={() => setActive("d")}
-            onChange={(e) => onChange(num, e.target.value)}
+            onChange={(e) =>
+              onChange(
+                num,
+                (e.nativeEvent as InputEvent).isComposing
+                  ? e.target.value
+                  : normalizeFormula(e.target.value),
+              )
+            }
+            onCompositionEnd={(e) =>
+              onChange(num, normalizeFormula(e.currentTarget.value))
+            }
+            onBlur={(e) => onChange(num, normalizeFormula(e.target.value))}
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
@@ -211,7 +234,12 @@ export default function App() {
   const [history, setHistory] = useState<Diagram[]>([initial.saved.diagram]);
   const [cursor, setCursor] = useState(0);
   const diagram = history[cursor];
-  const [selected, select] = useState("");
+  const [selected, setSelected] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
+  const select = (id: string) => {
+    setSelected(id);
+    setShowDetails(false);
+  };
   const [wire, setWire] = useState<string>();
   const [tab, setTab] = useState<"diagram" | "formula">("diagram");
   const [num, setNum] = useState(initial.saved.numerator),
@@ -284,6 +312,7 @@ export default function App() {
     setComparison(undefined);
   }, [diagramKey, formulaKey, tab, cmpNum, cmpDen]);
   function change(d: Diagram) {
+    if (JSON.stringify(d) === JSON.stringify(diagram)) return;
     setHistory((h) => [...h.slice(0, cursor + 1), d].slice(-60));
     setCursor(Math.min(cursor + 1, 59));
     setError("");
@@ -326,6 +355,52 @@ export default function App() {
     change({ ...diagram, nodes: [...diagram.nodes, v] });
     select(v.id);
   }
+  const copiedNode = useRef<typeof n>(undefined);
+  const pasteCount = useRef(0);
+  useEffect(() => {
+    function shortcut(event: KeyboardEvent) {
+      const element = event.target as HTMLElement;
+      if (
+        element.closest("input,textarea,[contenteditable=true]") ||
+        !(event.ctrlKey || event.metaKey) ||
+        tab !== "diagram"
+      )
+        return;
+      const key = event.key.toLowerCase();
+      if (key === "z" || key === "y") {
+        event.preventDefault();
+        const redo = key === "y" || event.shiftKey;
+        setCursor((c) =>
+          Math.max(0, Math.min(history.length - 1, c + (redo ? 1 : -1))),
+        );
+        select("");
+        setWire(undefined);
+      } else if (key === "c" && n && !window.getSelection()?.toString()) {
+        event.preventDefault();
+        copiedNode.current = structuredClone(n);
+        pasteCount.current = 0;
+        setNotice(`${n.label} をコピーしました。Ctrl＋Vで貼り付けできます。`);
+      } else if (key === "v" && copiedNode.current) {
+        event.preventDefault();
+        if (diagram.nodes.length >= 16) {
+          setError("要素は16個までです。");
+          return;
+        }
+        const offset = 40 * ++pasteCount.current;
+        const v = {
+          ...copiedNode.current,
+          id: crypto.randomUUID(),
+          x: Math.min(920, copiedNode.current.x + offset),
+          y: Math.min(560, copiedNode.current.y + offset),
+          label: (copiedNode.current.label + " コピー").slice(0, 40),
+        };
+        change({ ...diagram, nodes: [...diagram.nodes, v] });
+        select(v.id);
+      }
+    }
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, [diagram, cursor, history, selected, tab]);
   async function run() {
     const id = ++requestId.current;
     setBusy(true);
@@ -599,7 +674,7 @@ export default function App() {
                   <span>
                     {wire
                       ? "● 接続先の白い入力口を選んでください。合流は白丸の加算点へ。"
-                      : "青い出力口 → 白い入力口で配線。要素を選ぶと、画面内の編集欄で式を入力できます。"}
+                      : "青い出力口 → 白い入力口で配線。ブロックを選ぶと図上で式を入力できます。掛け算は *。"}
                   </span>
                   {wire && (
                     <button onClick={() => setWire(undefined)}>
@@ -614,6 +689,8 @@ export default function App() {
                   change={change}
                   wire={wire}
                   setWire={setWire}
+                  detailsOpen={showDetails}
+                  openDetails={() => setShowDetails(true)}
                 />
                 <div className="canvas-footer">
                   <span>
@@ -623,6 +700,7 @@ export default function App() {
                   <span>{saveStatus}</span>
                 </div>
                 <div
+                  hidden={n?.kind === "block" && !showDetails}
                   className={`inspector ${n || e ? "active" : ""}`}
                   role={n || e ? "region" : undefined}
                   aria-label={n || e ? "選択した要素の編集" : undefined}
@@ -687,7 +765,7 @@ export default function App() {
                       </label>
                       {n.kind === "block" && (
                         <FractionInput
-                          prefix="選択ブロック"
+                          prefix="詳細ブロック"
                           num={n.num}
                           den={n.den}
                           onChange={(num, den) => updateNode({ num, den })}

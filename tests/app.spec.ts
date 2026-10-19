@@ -46,6 +46,7 @@ test("ブロックの編集、移動、複製、削除、元に戻す、やり�
     .first()
     .click();
   await page.getByLabel("選択ブロックの分子").fill("a");
+  await page.getByRole("button", { name: "詳細設定", exact: true }).click();
   await page.getByRole("button", { name: "要素を→へ移動" }).click();
   await page.getByRole("button", { name: "複製", exact: true }).click();
   await expect(page.locator(".diagram-node")).toHaveCount(5);
@@ -131,7 +132,7 @@ test("式の入力欄が画面内に開き、空の分母を整数ゲインと�
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
   await field.fill("");
-  await expect(page.locator(".gain-hint")).toContainText("分母は1");
+  await expect(page.getByLabel("選択ブロックの分母")).toHaveValue("");
   await expect(
     page
       .locator(".diagram-node")
@@ -300,4 +301,31 @@ test("配線不足の表示、整列、経路の強調、基本公式の途中�
     await expect(first.locator(".diagram-canvas")).toBeVisible();
     await expect(first.locator(".verified")).toContainText("厳密一致");
   }
+});
+
+test("線図上で全角式を直接編集し、Ctrl+Z・やり直し・図形コピペ", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "直列", exact: true }).click();
+  await page.getByRole("button", { name: "伝達関数 G", exact: true }).click();
+  const num = page.getByLabel("選択ブロックの分子"),
+    den = page.getByLabel("選択ブロックの分母");
+  await num.fill("２×Ｋ");
+  await expect(num).toHaveValue("2*K");
+  await den.fill("１");
+  await expect(den).toHaveValue("1");
+  await expect(page.locator(".inspector.active:visible")).toHaveCount(0);
+  await page.getByRole("button", { name: "編集欄を閉じる" }).click();
+  await page.getByRole("button", { name: "伝達関数 G", exact: true }).click();
+  await page.keyboard.press("Control+c");
+  await page.keyboard.press("Control+v");
+  await expect(page.locator(".diagram-node")).toHaveCount(5);
+  await page.keyboard.press("Control+z");
+  await expect(page.locator(".diagram-node")).toHaveCount(4);
+  await page.keyboard.press("Control+Shift+z");
+  await expect(page.locator(".diagram-node")).toHaveCount(5);
+  await page.keyboard.press("Control+z");
+  await expect(page.locator(".diagram-node")).toHaveCount(4);
+  await page.getByRole("button", { name: "全体の伝達関数を求める" }).click();
+  await expect(page.locator(".result-status")).toBeVisible();
 });
