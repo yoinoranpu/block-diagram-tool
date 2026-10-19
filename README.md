@@ -51,3 +51,13 @@ E2EはPlaywrightと `/usr/bin/chromium` を使用します。別の環境では 
 `npm run build` の生成物 `dist/` を静的ホスティングに配置できます。公開操作はまだ行っていません。パッケージはビルド時に取得し、ブラウザ実行時にCDN・AI API等へ接続しません。
 
 企画・実装範囲は [docs/企画書.md](docs/企画書.md) を参照してください。
+
+### GitHub Pagesで公開する
+
+公開ワークフローは `.github/workflows/pages.yml` に用意しています。
+
+1. GitHubのリポジトリで Settings → Pages → Build and deployment → Source を **GitHub Actions** に設定します。
+2. `codex/control-diagram-app` ブランチのプルリクエストを作り、`main` にマージします。
+3. Actions の **Publish app to GitHub Pages** が成功すると、アプリを開けます。
+
+初回公開成功後のURLは `https://yoinoranpu.github.io/block-diagram-tool/` です。設定を変える前にワークフローが失敗した場合は、設定後に Actions からその実行を Re-run all jobs してください。以降は `main` への変更で自動更新します。リポジトリに配置したコードと設定だけでは公開完了にはなりません。
