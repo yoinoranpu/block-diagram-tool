@@ -7,7 +7,7 @@ export const halfWidth = (n: DiagramNode) =>
     : n.kind === "sum"
       ? 23
       : n.kind === "branch"
-        ? 8
+        ? 34
         : 33;
 export const halfHeight = (n: DiagramNode) =>
   n.kind === "block"
@@ -280,9 +280,17 @@ export function routeEdges(diagram: Diagram): RoutedEdge[] {
   return diagram.edges.map((edge) => {
     const a = diagram.nodes.find((n) => n.id === edge.from)!,
       b = diagram.nodes.find((n) => n.id === edge.to)!;
-    const fromSide = outputSide(a),
+    const fromSide =
+        a.kind === "branch"
+          ? Math.abs(b.y - a.y) > 40
+            ? b.y < a.y
+              ? "top"
+              : "bottom"
+            : outputSide(a)
+          : outputSide(a),
       toSide = sides.get(edge.id) ?? inputSide(b);
-    const start = portPoint(a, fromSide),
+    const start =
+        a.kind === "branch" ? { x: a.x, y: a.y } : portPoint(a, fromSide),
       end = portPoint(b, toSide),
       u = vector(fromSide),
       v = vector(toSide);
@@ -304,7 +312,10 @@ export function routeEdges(diagram: Diagram): RoutedEdge[] {
         }
       }
     }
-    const stubA = { x: start.x + u.x * 24, y: start.y + u.y * 24 },
+    const stubA = {
+        x: portPoint(a, fromSide).x + u.x * 24,
+        y: start.y + u.y * 24,
+      },
       stubB = { x: end.x + v.x * 24, y: end.y + v.y * 24 };
     const middle = findPath(stubA, stubB, obstacles, used);
     // Overlapping user-positioned nodes may have no obstacle-free route. Mark

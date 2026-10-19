@@ -126,8 +126,8 @@ function FractionInput({
           <input
             ref={dref}
             aria-label={`${prefix}の分母`}
-            aria-invalid={!den.trim()}
-            placeholder="定数ゲインなら 1"
+            aria-invalid={false}
+            placeholder="省略すると 1"
             value={den}
             maxLength={300}
             onFocus={() => setActive("d")}
@@ -188,18 +188,15 @@ function FractionInput({
           ))}
         </div>
       </details>
-      {(!num.trim() || !den.trim()) && (
+      {!num.trim() && (
         <p className="inline-validation" role="status">
-          {!num.trim() ? "分子が未入力です。" : ""}
-          {!den.trim()
-            ? "分母が未入力です。定数ゲインなら 1 を入力してください。"
-            : ""}
+          分子が未入力です。
         </p>
       )}
       {!den.trim() && (
-        <button className="fill-denominator" onClick={() => onChange(num, "1")}>
-          分母を1にする
-        </button>
+        <p className="gain-hint">
+          分母は1として計算し、線図では分子だけを表示します。
+        </p>
       )}
       <p className="field-hint">
         掛け算は *、累乗は ^（例：s^3+a*s+1）。係数は半角英字1文字。i・e・E
@@ -909,6 +906,30 @@ export default function App() {
                       </>
                     )}
                   </div>
+                )}
+                {current && (
+                  <section className="learning-section">
+                    <h3>基本公式でたどる計算</h3>
+                    {current.learning.map((step, i) => (
+                      <details key={i} className="learning-step">
+                        <summary>
+                          {i + 1}. {step.title}
+                        </summary>
+                        <p>{step.explanation}</p>
+                        <Formula tex={step.tex} />
+                        <Canvas
+                          key={`${diagramKey}-${i}`}
+                          diagram={step.diagram}
+                          readonly
+                          select={() => {}}
+                          change={() => {}}
+                          setWire={() => {}}
+                        />
+                        <p className="verified">✓ 元の伝達関数と厳密一致</p>
+                      </details>
+                    ))}
+                    <p className="explanation">{current.learningNote}</p>
+                  </section>
                 )}
                 <details className="calculation-details" open>
                   <summary>

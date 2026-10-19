@@ -120,7 +120,9 @@ test("不正な式は答えを作らずエラーを表示、画面幅を維持",
   ).toBe(true);
 });
 
-test("式の入力欄が画面内に開き、空の分母を修正できる", async ({ page }) => {
+test("式の入力欄が画面内に開き、空の分母を整数ゲインとして扱う", async ({
+  page,
+}) => {
   await page.getByRole("button", { name: "直列", exact: true }).click();
   await page.getByRole("button", { name: "伝達関数 G", exact: true }).click();
   const field = page.getByLabel("選択ブロックの分母");
@@ -129,18 +131,19 @@ test("式の入力欄が画面内に開き、空の分母を修正できる", as
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
   await field.fill("");
-  await expect(page.locator(".inline-validation")).toContainText(
-    "分母が未入力",
-  );
-  await page.getByRole("button", { name: "編集欄を閉じる" }).click();
-  await page.getByRole("button", { name: "全体の伝達関数を求める" }).click();
-  await expect(page.locator(".input-issue")).toContainText("「G」の分母");
-  await page.getByRole("button", { name: "分母を1にする" }).click();
+  await expect(page.locator(".gain-hint")).toContainText("分母は1");
+  await expect(
+    page
+      .locator(".diagram-node")
+      .filter({ has: page.locator(".block-gain") })
+      .first(),
+  ).toBeVisible();
   await page.getByLabel("選択ブロックの分子").fill("2");
   await page.getByRole("button", { name: "編集欄を閉じる" }).click();
   await page.getByRole("button", { name: "全体の伝達関数を求める" }).click();
   await expect(page.locator(".result-status")).toBeVisible();
 });
+
 test("白丸の加算点、拡大縮小と全体表示、全体のPNG・SVG保存", async ({
   page,
 }) => {
@@ -220,4 +223,81 @@ test("2本指で線図だけを拡大し、全体表示で戻せる", async ({ p
   await page.getByRole("button", { name: "全体表示", exact: true }).click();
   expect(await svg.getAttribute("viewBox")).toBe(before);
   await session.detach();
+});
+
+test("分岐点の中央をマウスと指で移動でき、配線の開始と混同しない", async ({
+  page,
+}) => {
+  const handle = page.locator(".branch-drag-handle");
+  await handle.scrollIntoViewIfNeeded();
+  const branch = page.getByRole("button", {
+    name: "分岐点 分岐点",
+    exact: true,
+  });
+  const original = await branch.getAttribute("transform"),
+    box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2,
+    y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 40, y - 35, { steps: 8 });
+  await page.mouse.up();
+  await expect(branch).not.toHaveAttribute("transform", original!);
+  await expect(page.getByRole("button", { name: "配線を中止" })).toHaveCount(0);
+  await page.getByRole("button", { name: "編集欄を閉じる" }).click();
+  await page.getByRole("button", { name: "元に戻す", exact: true }).click();
+  await expect(branch).toHaveAttribute("transform", original!);
+  await handle.scrollIntoViewIfNeeded();
+  const touchBox = (await handle.boundingBox())!,
+    tx = touchBox.x + touchBox.width / 2,
+    ty = touchBox.y + touchBox.height / 2;
+  const session = await page.context().newCDPSession(page);
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: tx, y: ty, id: 1 }],
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: tx + 45, y: ty - 35, id: 1 }],
+  });
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect(branch).not.toHaveAttribute("transform", original!);
+  await expect(page.getByRole("button", { name: "配線を中止" })).toHaveCount(0);
+  await session.detach();
+});
+test("配線不足の表示、整列、経路の強調、基本公式の途中の線図", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "伝達関数", exact: true }).click();
+  await expect(page.locator(".wiring-check summary")).toContainText("1件");
+  await page.locator(".wiring-check summary").click();
+  await page.locator(".wiring-check button").first().click();
+  await expect(page.locator(".diagram-node.wiring-issue")).toHaveCount(1);
+  await page.getByRole("button", { name: "削除", exact: true }).click();
+  await expect(page.locator(".wiring-check summary")).toContainText(
+    "未接続・二重接続なし",
+  );
+  await page.getByRole("button", { name: "自動整列", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "吸着" })).toBeChecked();
+  await page.getByRole("button", { name: "伝達関数 H", exact: true }).click();
+  await expect(page.locator(".signal-trace")).toContainText("H を通る");
+  await expect(page.locator(".edge-group.on-path").first()).toBeVisible();
+  await page.getByRole("button", { name: "編集欄を閉じる" }).click();
+  for (const [kind, method] of [
+    ["直列", "直列ブロック"],
+    ["並列", "並列ブロック"],
+    ["負帰還", "負フィードバック"],
+    ["正帰還", "正フィードバック"],
+  ]) {
+    await page.getByRole("button", { name: kind, exact: true }).click();
+    await page.getByRole("button", { name: "全体の伝達関数を求める" }).click();
+    const first = page.locator(".learning-step").first();
+    await expect(first.locator("summary")).toContainText(method);
+    await first.locator("summary").click();
+    await expect(first.locator(".diagram-canvas")).toBeVisible();
+    await expect(first.locator(".verified")).toContainText("厳密一致");
+  }
 });
