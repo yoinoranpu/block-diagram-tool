@@ -1,3 +1,4 @@
+import { normalizeFormula } from "./normalizeInput";
 import { buildLearning, type LearningStep } from "./learning";
 import nerdamer from "nerdamer/all.js";
 import {
@@ -84,6 +85,7 @@ const ONE: Fraction = { n: "1", d: "1" };
 
 // Deliberately small grammar: rational operations only. No eval, function calls or CAS commands.
 export function parse(input: string): Fraction {
+  input = normalizeFormula(input);
   if (!input.trim() || input.length > 300)
     throw new MathError("式を1〜300文字で入力してください。");
   const source = input.replace(/\s+/g, "");
@@ -488,8 +490,8 @@ export function generate(
       nodes: [
         node("input", "u", 65, 280),
         node("sum", "q", 200, 280),
-        node("sum", "z", 870, 510),
-        node("output", "y", 970, 510),
+        node("sum", "z", 900, 510),
+        node("output", "y", 980, 510),
       ],
       edges: [edge("u", "q"), edge("z", "y")],
     };
@@ -506,7 +508,14 @@ export function generate(
       const outGain = sub(b[order - i], mul(direct, a[order - i]));
       if (outGain.n !== "0") {
         d.nodes.push(
-          node("block", `b${i}`, 200 + i * 175, 510, outGain.n, outGain.d),
+          node(
+            "block",
+            `b${i}`,
+            200 + i * 175,
+            430 + (i - 1) * 60,
+            outGain.n,
+            outGain.d,
+          ),
         );
         d.edges.push(edge(`i${i}`, `b${i}`), edge(`b${i}`, "z"));
       }

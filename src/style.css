@@ -1431,3 +1431,52 @@ input[aria-invalid="true"] {
 .learning-step .canvas-scroll {
   height: 240px !important;
 }
+.inline-fraction {
+  display: flex;
+  flex-direction: column;
+  width: 116px;
+  gap: 1px;
+  background: white;
+}
+.inline-fraction input {
+  font:
+    16px Georgia,
+    serif;
+  min-width: 0;
+  width: 116px;
+  height: 24px;
+  min-height: 0;
+  border: 1px solid #9fbee9;
+  border-radius: 3px;
+  padding: 1px 4px;
+  text-align: center;
+  background: #f7fbff;
+}
+.inline-fraction input + input {
+  border-top-color: #568edb;
+}
+.editing-value {
+  visibility: hidden;
+}
+.node-actions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 7px 10px;
+  background: #eff6ff;
+  border-top: 1px solid #d8e7fa;
+}
+.node-actions strong {
+  font-size: 11px;
+  color: #416d9f;
+  margin-right: auto;
+}
+.node-actions button {
+  font-size: 10px;
+  padding: 4px 8px;
+  min-height: 30px;
+}
+.inspector[hidden] {
+  display: none;
+}
