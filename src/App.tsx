@@ -1,3 +1,4 @@
+import { StateSpaceWorkspace } from "./StateSpaceWorkspace";
 import { ActionMenu } from "./ActionMenu";
 import { normalizeFormula } from "./normalizeInput";
 import { useEffect, useRef, useState } from "react";
@@ -242,7 +243,7 @@ export default function App() {
     setShowDetails(false);
   };
   const [wire, setWire] = useState<string>();
-  const [tab, setTab] = useState<"diagram" | "formula">("diagram");
+  const [tab, setTab] = useState<"diagram" | "formula" | "state">("diagram");
   const [num, setNum] = useState(initial.saved.numerator),
     [den, setDen] = useState(initial.saved.denominator);
   const [answer, setAnswer] = useState<{ data: Analysis; key: string }>();
@@ -526,6 +527,7 @@ export default function App() {
         <h1 className="visually-hidden">制御ブロック線図と伝達関数の計算</h1>
         <nav className="tabs" aria-label="計算モード">
           <button
+            aria-label="01 線図から伝達関数"
             className={tab === "diagram" ? "active" : ""}
             onClick={() => {
               setTab("diagram");
@@ -535,6 +537,7 @@ export default function App() {
             <span>01</span> 線図から伝達関数
           </button>
           <button
+            aria-label="02 伝達関数から線図"
             className={tab === "formula" ? "active" : ""}
             onClick={() => {
               setTab("formula");
@@ -542,6 +545,16 @@ export default function App() {
             }}
           >
             <span>02</span> 伝達関数から線図
+          </button>
+          <button
+            aria-label="03 状態空間表現から"
+            className={tab === "state" ? "active" : ""}
+            onClick={() => {
+              setTab("state");
+              setError("");
+            }}
+          >
+            <span>03</span> 状態空間表現から
           </button>
         </nav>
         {notice && (
@@ -552,579 +565,595 @@ export default function App() {
             </button>
           </div>
         )}
-        <div className="workspace">
-          <section className="input-panel panel">
-            <div className="panel-heading">
-              <h2>
-                <span className="step">1</span>
-                {tab === "diagram"
-                  ? "ブロック線図を作る"
-                  : "伝達関数を入力する"}
-              </h2>
-              {tab === "formula" && (
-                <ActionMenu label="保存・読込">
-                  <button onClick={exportJson}>JSON保存</button>
-                  <button onClick={() => file.current?.click()}>読込</button>
-                </ActionMenu>
-              )}
-              <input
-                ref={file}
-                type="file"
-                accept="application/json,.json"
-                hidden
-                onChange={(ev) => importJson(ev.target.files?.[0])}
-              />
-            </div>
-            {tab === "diagram" ? (
-              <>
-                <div className="examples">
-                  <span>例題から始める</span>
-                  {(
-                    [
-                      ["series", "直列"],
-                      ["parallel", "並列"],
-                      ["negative", "負帰還"],
-                      ["positive", "正帰還"],
-                      ["multi", "複数ループ"],
-                    ] as const
-                  ).map(([kind, title]) => (
-                    <button
-                      key={kind}
-                      onClick={() => {
-                        change(example(kind));
-                        select("");
-                        setWire(undefined);
-                      }}
-                    >
-                      {title}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => {
-                      change({ nodes: [], edges: [] });
-                      select("");
-                      setWire(undefined);
-                    }}
-                  >
-                    新規線図
-                  </button>
-                </div>
-                <div className="editor-toolbar">
-                  <div className="add-tools">
+        {tab === "state" ? (
+          <StateSpaceWorkspace />
+        ) : (
+          <div className="workspace">
+            <section className="input-panel panel">
+              <div className="panel-heading">
+                <h2>
+                  <span className="step">1</span>
+                  {tab === "diagram"
+                    ? "ブロック線図を作る"
+                    : "伝達関数を入力する"}
+                </h2>
+                {tab === "formula" && (
+                  <ActionMenu label="保存・読込">
+                    <button onClick={exportJson}>JSON保存</button>
+                    <button onClick={() => file.current?.click()}>読込</button>
+                  </ActionMenu>
+                )}
+                <input
+                  ref={file}
+                  type="file"
+                  accept="application/json,.json"
+                  hidden
+                  onChange={(ev) => importJson(ev.target.files?.[0])}
+                />
+              </div>
+              {tab === "diagram" ? (
+                <>
+                  <div className="examples">
+                    <span>例題から始める</span>
                     {(
-                      ["block", "sum", "branch", "input", "output"] as Kind[]
-                    ).map((kind) => (
+                      [
+                        ["series", "直列"],
+                        ["parallel", "並列"],
+                        ["negative", "負帰還"],
+                        ["positive", "正帰還"],
+                        ["multi", "複数ループ"],
+                      ] as const
+                    ).map(([kind, title]) => (
                       <button
                         key={kind}
-                        onClick={() => addNode(kind)}
-                        title={`${labels[kind]}を追加`}
+                        onClick={() => {
+                          change(example(kind));
+                          select("");
+                          setWire(undefined);
+                        }}
                       >
-                        <span aria-hidden="true">
-                          {
-                            {
-                              block: "▭",
-                              sum: "○",
-                              branch: "●",
-                              input: "→",
-                              output: "↗",
-                            }[kind]
-                          }
-                        </span>
-                        {labels[kind]}
+                        {title}
                       </button>
                     ))}
-                  </div>
-                  <div className="undo-tools">
                     <button
-                      aria-label="元に戻す"
-                      title="元に戻す"
-                      disabled={cursor === 0}
                       onClick={() => {
-                        setCursor(cursor - 1);
+                        change({ nodes: [], edges: [] });
                         select("");
                         setWire(undefined);
                       }}
                     >
-                      ↶
-                    </button>
-                    <button
-                      aria-label="やり直す"
-                      title="やり直す"
-                      disabled={cursor === history.length - 1}
-                      onClick={() => {
-                        setCursor(cursor + 1);
-                        select("");
-                        setWire(undefined);
-                      }}
-                    >
-                      ↷
+                      新規線図
                     </button>
                   </div>
-                </div>
-                <div className={`canvas-guide ${wire ? "wiring" : ""}`}>
-                  <span>
-                    {wire
-                      ? "● 接続先の白い入力口を選んでください。合流は白丸の加算点へ。"
-                      : "青い出力口 → 白い入力口で配線。ブロックを選ぶと図上で式を入力できます。掛け算は *。"}
-                  </span>
-                  {wire && (
-                    <button onClick={() => setWire(undefined)}>
-                      配線を中止
-                    </button>
-                  )}
-                  <button
-                    className="primary diagram-calculate"
-                    disabled={busy}
-                    onClick={run}
-                  >
-                    {busy ? "計算しています…" : "全体の伝達関数を求める"}
-                  </button>
-                </div>
-                <Canvas
-                  fileActions={
-                    <>
-                      <button onClick={exportJson}>JSON保存</button>
-                      <button onClick={() => file.current?.click()}>
-                        JSON読込
+                  <div className="editor-toolbar">
+                    <div className="add-tools">
+                      {(
+                        ["block", "sum", "branch", "input", "output"] as Kind[]
+                      ).map((kind) => (
+                        <button
+                          key={kind}
+                          onClick={() => addNode(kind)}
+                          title={`${labels[kind]}を追加`}
+                        >
+                          <span aria-hidden="true">
+                            {
+                              {
+                                block: "▭",
+                                sum: "○",
+                                branch: "●",
+                                input: "→",
+                                output: "↗",
+                              }[kind]
+                            }
+                          </span>
+                          {labels[kind]}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="undo-tools">
+                      <button
+                        aria-label="元に戻す"
+                        title="元に戻す"
+                        disabled={cursor === 0}
+                        onClick={() => {
+                          setCursor(cursor - 1);
+                          select("");
+                          setWire(undefined);
+                        }}
+                      >
+                        ↶
                       </button>
-                    </>
-                  }
-                  diagram={diagram}
-                  selected={selected}
-                  select={select}
-                  change={change}
-                  wire={wire}
-                  setWire={setWire}
-                  detailsOpen={showDetails}
-                  openDetails={() => setShowDetails(true)}
-                />
-                <div className="canvas-footer">
-                  <span>
-                    {diagram.nodes.length}/16 要素 · {diagram.edges.length}/32
-                    配線
-                  </span>
-                  <span>{saveStatus}</span>
-                </div>
-                <div
-                  hidden={n?.kind === "block" && !showDetails}
-                  className={`inspector ${n || e ? "active" : ""}`}
-                  role={n || e ? "region" : undefined}
-                  aria-label={n || e ? "選択した要素の編集" : undefined}
-                >
-                  {(n || e) && (
+                      <button
+                        aria-label="やり直す"
+                        title="やり直す"
+                        disabled={cursor === history.length - 1}
+                        onClick={() => {
+                          setCursor(cursor + 1);
+                          select("");
+                          setWire(undefined);
+                        }}
+                      >
+                        ↷
+                      </button>
+                    </div>
+                  </div>
+                  <div className={`canvas-guide ${wire ? "wiring" : ""}`}>
+                    <span>
+                      {wire
+                        ? "● 接続先の白い入力口を選んでください。合流は白丸の加算点へ。"
+                        : "青い出力口 → 白い入力口で配線。ブロックを選ぶと図上で式を入力できます。掛け算は *。"}
+                    </span>
+                    {wire && (
+                      <button onClick={() => setWire(undefined)}>
+                        配線を中止
+                      </button>
+                    )}
                     <button
-                      className="close-inspector"
-                      aria-label="編集欄を閉じる"
-                      onClick={() => select("")}
+                      className="primary diagram-calculate"
+                      disabled={busy}
+                      onClick={run}
                     >
-                      閉じる ×
+                      {busy ? "計算しています…" : "全体の伝達関数を求める"}
                     </button>
-                  )}
-                  {inputIssue?.nodeId === selected && (
-                    <p className="input-issue" role="alert">
-                      {inputIssue.message}
-                    </p>
-                  )}
-                  {n ? (
-                    <>
-                      <div className="inspector-title">
-                        <strong>
-                          {n.label} · {labels[n.kind]}の編集
-                        </strong>
-                        <div>
+                  </div>
+                  <Canvas
+                    fileActions={
+                      <>
+                        <button onClick={exportJson}>JSON保存</button>
+                        <button onClick={() => file.current?.click()}>
+                          JSON読込
+                        </button>
+                      </>
+                    }
+                    diagram={diagram}
+                    selected={selected}
+                    select={select}
+                    change={change}
+                    wire={wire}
+                    setWire={setWire}
+                    detailsOpen={showDetails}
+                    openDetails={() => setShowDetails(true)}
+                  />
+                  <div className="canvas-footer">
+                    <span>
+                      {diagram.nodes.length}/16 要素 · {diagram.edges.length}/32
+                      配線
+                    </span>
+                    <span>{saveStatus}</span>
+                  </div>
+                  <div
+                    hidden={n?.kind === "block" && !showDetails}
+                    className={`inspector ${n || e ? "active" : ""}`}
+                    role={n || e ? "region" : undefined}
+                    aria-label={n || e ? "選択した要素の編集" : undefined}
+                  >
+                    {(n || e) && (
+                      <button
+                        className="close-inspector"
+                        aria-label="編集欄を閉じる"
+                        onClick={() => select("")}
+                      >
+                        閉じる ×
+                      </button>
+                    )}
+                    {inputIssue?.nodeId === selected && (
+                      <p className="input-issue" role="alert">
+                        {inputIssue.message}
+                      </p>
+                    )}
+                    {n ? (
+                      <>
+                        <div className="inspector-title">
+                          <strong>
+                            {n.label} · {labels[n.kind]}の編集
+                          </strong>
+                          <div>
+                            <button
+                              onClick={() => {
+                                if (diagram.nodes.length >= 16) {
+                                  setError("要素は16個までです。");
+                                  return;
+                                }
+                                const c = {
+                                  ...n,
+                                  id: crypto.randomUUID(),
+                                  x: Math.min(920, n.x + 45),
+                                  y: Math.min(560, n.y + 65),
+                                  label: n.label + " コピー",
+                                };
+                                change({
+                                  ...diagram,
+                                  nodes: [...diagram.nodes, c],
+                                });
+                                select(c.id);
+                              }}
+                            >
+                              複製
+                            </button>
+                            <button className="danger" onClick={remove}>
+                              削除
+                            </button>
+                          </div>
+                        </div>
+                        <label className="name-field">
+                          名前
+                          <input
+                            value={n.label}
+                            maxLength={30}
+                            onChange={(ev) =>
+                              updateNode({ label: ev.target.value })
+                            }
+                          />
+                        </label>
+                        {n.kind === "block" && (
+                          <FractionInput
+                            prefix="詳細ブロック"
+                            num={n.num}
+                            den={n.den}
+                            onChange={(num, den) => updateNode({ num, den })}
+                          />
+                        )}
+                        {n.kind === "block" && (
                           <button
-                            onClick={() => {
-                              if (diagram.nodes.length >= 16) {
-                                setError("要素は16個までです。");
-                                return;
-                              }
-                              const c = {
-                                ...n,
-                                id: crypto.randomUUID(),
-                                x: Math.min(920, n.x + 45),
-                                y: Math.min(560, n.y + 65),
-                                label: n.label + " コピー",
-                              };
-                              change({
-                                ...diagram,
-                                nodes: [...diagram.nodes, c],
-                              });
-                              select(c.id);
-                            }}
+                            className="reverse-button"
+                            onClick={() =>
+                              updateNode({ reversed: !n.reversed })
+                            }
                           >
-                            複製
+                            入出力の向き：{n.reversed ? "←" : "→"}（反転）
                           </button>
+                        )}
+                        <div className="move-tools">
+                          <span>位置を調整</span>
+                          {(
+                            [
+                              ["←", -20, 0],
+                              ["↑", 0, -20],
+                              ["↓", 0, 20],
+                              ["→", 20, 0],
+                            ] as const
+                          ).map(([t, x, y]) => (
+                            <button
+                              key={t}
+                              aria-label={`要素を${t}へ移動`}
+                              onClick={() =>
+                                updateNode({
+                                  x: Math.max(70, Math.min(930, n.x + x)),
+                                  y: Math.max(55, Math.min(565, n.y + y)),
+                                })
+                              }
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : e ? (
+                      <>
+                        <div className="inspector-title">
+                          <strong>配線の編集</strong>
                           <button className="danger" onClick={remove}>
-                            削除
+                            配線を削除
                           </button>
                         </div>
-                      </div>
-                      <label className="name-field">
-                        名前
-                        <input
-                          value={n.label}
-                          maxLength={30}
-                          onChange={(ev) =>
-                            updateNode({ label: ev.target.value })
-                          }
-                        />
-                      </label>
-                      {n.kind === "block" && (
-                        <FractionInput
-                          prefix="詳細ブロック"
-                          num={n.num}
-                          den={n.den}
-                          onChange={(num, den) => updateNode({ num, den })}
-                        />
-                      )}
-                      {n.kind === "block" && (
-                        <button
-                          className="reverse-button"
-                          onClick={() => updateNode({ reversed: !n.reversed })}
-                        >
-                          入出力の向き：{n.reversed ? "←" : "→"}（反転）
-                        </button>
-                      )}
-                      <div className="move-tools">
-                        <span>位置を調整</span>
-                        {(
-                          [
-                            ["←", -20, 0],
-                            ["↑", 0, -20],
-                            ["↓", 0, 20],
-                            ["→", 20, 0],
-                          ] as const
-                        ).map(([t, x, y]) => (
+                        <p>
+                          {diagram.nodes.find((n) => n.id === e.from)?.label} →{" "}
+                          {diagram.nodes.find((n) => n.id === e.to)?.label}
+                        </p>
+                        {diagram.nodes.find((n) => n.id === e.to)?.kind ===
+                          "sum" && (
                           <button
-                            key={t}
-                            aria-label={`要素を${t}へ移動`}
                             onClick={() =>
-                              updateNode({
-                                x: Math.max(70, Math.min(930, n.x + x)),
-                                y: Math.max(55, Math.min(565, n.y + y)),
+                              change({
+                                ...diagram,
+                                edges: diagram.edges.map((x) =>
+                                  x.id === e.id
+                                    ? { ...x, sign: x.sign === 1 ? -1 : 1 }
+                                    : x,
+                                ),
                               })
                             }
                           >
-                            {t}
+                            入力符号：{e.sign === 1 ? "+" : "−"}（切替）
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <p className="inspector-empty">
+                        要素を選ぶと、式の編集・複製・削除・位置調整ができます。
+                        <br />
+                        加算点の配線上の ＋ / −
+                        をタップすると符号が切り替わります。
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="formula-entry">
+                  <div className="entry-label">
+                    <span>G(s) =</span>
+                    <span>分子と分母をそれぞれ入力</span>
+                  </div>
+                  <FractionInput
+                    num={num}
+                    den={den}
+                    onChange={(n, d) => {
+                      setNum(n);
+                      setDen(d);
+                    }}
+                  />
+                  <div className="expression-presets">
+                    <span>入力例</span>
+                    {[
+                      ["K", "(s+a)*(s+b)", "文字係数・2次"],
+                      ["s+2", "s^3+3*s^2+2*s+1", "3次系"],
+                      ["1", "s^4+1", "4次系"],
+                    ].map(([n, d, t]) => (
+                      <button
+                        key={t}
+                        onClick={() => {
+                          setNum(n);
+                          setDen(d);
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="explanation">
+                    単一ブロック・ゲイン分離・因数分解・積分器構成のうち、成立するものを表示します。生成後は線図から再計算し、元の式との一致を確認します。
+                  </p>
+                  <p className="field-hint">{saveStatus}</p>
+                </div>
+              )}
+              {tab === "formula" && (
+                <div className="calculate-bar">
+                  <span>記号係数・高次の有理式に対応</span>
+                  <button className="primary" disabled={busy} onClick={run}>
+                    {busy ? "計算しています…" : "等価な線図を生成する"}
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              )}
+            </section>
+            <aside ref={resultRef} className="result-panel panel">
+              <div className="panel-heading">
+                <h2>
+                  <span className="step">2</span>答えを確かめる
+                </h2>
+                <span className="exact-badge">厳密な記号計算</span>
+              </div>
+              {error && (
+                <div className="error" role="alert">
+                  <strong>計算・操作を完了できませんでした</strong>
+                  <p>{error}</p>
+                </div>
+              )}
+              {formulaTex ? (
+                <>
+                  <div className="result-card">
+                    <div className="result-caption">
+                      {tab === "diagram"
+                        ? "全体の伝達関数"
+                        : "入力した伝達関数"}
+                      <button onClick={copy}>式をコピー</button>
+                    </div>
+                    <div className="result-formula">
+                      <span>G(s) =</span>
+                      <Formula tex={formulaTex} />
+                    </div>
+                    <details className="text-expression">
+                      <summary>テキスト式を表示</summary>
+                      <code>
+                        {answerFraction &&
+                          `(${answerFraction.n})/(${answerFraction.d})`}
+                      </code>
+                    </details>
+                    <p className="result-status">
+                      <span />
+                      有理式として計算済み · 係数条件は下記参照
+                    </p>
+                  </div>
+                  {tab === "formula" && currentGenerated && (
+                    <div className="candidate-section">
+                      <h3>
+                        等価な線図{" "}
+                        <span>
+                          {currentGenerated.candidates.length} パターン
+                        </span>
+                      </h3>
+                      <div className="candidate-tabs">
+                        {currentGenerated.candidates.map((c, i) => (
+                          <button
+                            className={candidateIndex === i ? "chosen" : ""}
+                            key={c.title}
+                            onClick={() => setCandidateIndex(i)}
+                          >
+                            {c.title}
                           </button>
                         ))}
                       </div>
-                    </>
-                  ) : e ? (
-                    <>
-                      <div className="inspector-title">
-                        <strong>配線の編集</strong>
-                        <button className="danger" onClick={remove}>
-                          配線を削除
-                        </button>
-                      </div>
-                      <p>
-                        {diagram.nodes.find((n) => n.id === e.from)?.label} →{" "}
-                        {diagram.nodes.find((n) => n.id === e.to)?.label}
-                      </p>
-                      {diagram.nodes.find((n) => n.id === e.to)?.kind ===
-                        "sum" && (
-                        <button
-                          onClick={() =>
-                            change({
-                              ...diagram,
-                              edges: diagram.edges.map((x) =>
-                                x.id === e.id
-                                  ? { ...x, sign: x.sign === 1 ? -1 : 1 }
-                                  : x,
-                              ),
-                            })
-                          }
-                        >
-                          入力符号：{e.sign === 1 ? "+" : "−"}（切替）
-                        </button>
+                      {candidate && (
+                        <>
+                          <p className="verified">
+                            ✓ 線図からの再計算で厳密一致
+                          </p>
+                          <Canvas
+                            key={candidate.title}
+                            diagram={candidate.diagram}
+                            select={() => {}}
+                            change={() => {}}
+                            setWire={() => {}}
+                            readonly
+                          />
+                          <p className="explanation">
+                            {candidate.explanation}{" "}
+                            「全体表示」で全体を確認し、拡大すると配線や式を詳しく見られます。
+                          </p>
+                          <button
+                            className="secondary"
+                            onClick={() => {
+                              change(candidate.diagram);
+                              select("");
+                              setWire(undefined);
+                              setTab("diagram");
+                              setAnswer({
+                                data: candidate.result,
+                                key: JSON.stringify(candidate.diagram),
+                              });
+                            }}
+                          >
+                            この線図を編集する →
+                          </button>
+                        </>
                       )}
-                    </>
-                  ) : (
-                    <p className="inspector-empty">
-                      要素を選ぶと、式の編集・複製・削除・位置調整ができます。
-                      <br />
-                      加算点の配線上の ＋ / −
-                      をタップすると符号が切り替わります。
-                    </p>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="formula-entry">
-                <div className="entry-label">
-                  <span>G(s) =</span>
-                  <span>分子と分母をそれぞれ入力</span>
-                </div>
-                <FractionInput
-                  num={num}
-                  den={den}
-                  onChange={(n, d) => {
-                    setNum(n);
-                    setDen(d);
-                  }}
-                />
-                <div className="expression-presets">
-                  <span>入力例</span>
-                  {[
-                    ["K", "(s+a)*(s+b)", "文字係数・2次"],
-                    ["s+2", "s^3+3*s^2+2*s+1", "3次系"],
-                    ["1", "s^4+1", "4次系"],
-                  ].map(([n, d, t]) => (
-                    <button
-                      key={t}
-                      onClick={() => {
-                        setNum(n);
-                        setDen(d);
-                      }}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-                <p className="explanation">
-                  単一ブロック・ゲイン分離・因数分解・積分器構成のうち、成立するものを表示します。生成後は線図から再計算し、元の式との一致を確認します。
-                </p>
-                <p className="field-hint">{saveStatus}</p>
-              </div>
-            )}
-            {tab === "formula" && (
-              <div className="calculate-bar">
-                <span>記号係数・高次の有理式に対応</span>
-                <button className="primary" disabled={busy} onClick={run}>
-                  {busy ? "計算しています…" : "等価な線図を生成する"}
-                  <span aria-hidden="true">→</span>
-                </button>
-              </div>
-            )}
-          </section>
-          <aside ref={resultRef} className="result-panel panel">
-            <div className="panel-heading">
-              <h2>
-                <span className="step">2</span>答えを確かめる
-              </h2>
-              <span className="exact-badge">厳密な記号計算</span>
-            </div>
-            {error && (
-              <div className="error" role="alert">
-                <strong>計算・操作を完了できませんでした</strong>
-                <p>{error}</p>
-              </div>
-            )}
-            {formulaTex ? (
-              <>
-                <div className="result-card">
-                  <div className="result-caption">
-                    {tab === "diagram" ? "全体の伝達関数" : "入力した伝達関数"}
-                    <button onClick={copy}>式をコピー</button>
-                  </div>
-                  <div className="result-formula">
-                    <span>G(s) =</span>
-                    <Formula tex={formulaTex} />
-                  </div>
-                  <details className="text-expression">
-                    <summary>テキスト式を表示</summary>
-                    <code>
-                      {answerFraction &&
-                        `(${answerFraction.n})/(${answerFraction.d})`}
-                    </code>
-                  </details>
-                  <p className="result-status">
-                    <span />
-                    有理式として計算済み · 係数条件は下記参照
-                  </p>
-                </div>
-                {tab === "formula" && currentGenerated && (
-                  <div className="candidate-section">
-                    <h3>
-                      等価な線図{" "}
-                      <span>{currentGenerated.candidates.length} パターン</span>
-                    </h3>
-                    <div className="candidate-tabs">
-                      {currentGenerated.candidates.map((c, i) => (
-                        <button
-                          className={candidateIndex === i ? "chosen" : ""}
-                          key={c.title}
-                          onClick={() => setCandidateIndex(i)}
-                        >
-                          {c.title}
-                        </button>
-                      ))}
                     </div>
-                    {candidate && (
+                  )}
+                  {current && (
+                    <section className="learning-section">
+                      <h3>基本公式でたどる計算</h3>
+                      {current.learning.map((step, i) => (
+                        <details key={i} className="learning-step">
+                          <summary>
+                            {i + 1}. {step.title}
+                          </summary>
+                          <p>{step.explanation}</p>
+                          <Formula tex={step.tex} />
+                          <Canvas
+                            key={`${diagramKey}-${i}`}
+                            diagram={step.diagram}
+                            readonly
+                            select={() => {}}
+                            change={() => {}}
+                            setWire={() => {}}
+                          />
+                          <p className="verified">✓ 元の伝達関数と厳密一致</p>
+                        </details>
+                      ))}
+                      <p className="explanation">{current.learningNote}</p>
+                    </section>
+                  )}
+                  <details className="calculation-details" open>
+                    <summary>
+                      <span className="step">3</span>計算過程・解説
+                    </summary>
+                    <p>
+                      各要素の出力を x1, x2, …、外部入力を U
+                      として、信号方程式を立てます。ブロックの伝達関数と入力符号を反映し、係数行列を
+                      A
+                      とし、分数なし消去法で行列式を厳密に計算します。出力の列を入力係数に置き換えた行列式との比から
+                      Y/U を求めます。
+                    </p>
+                    {(current ?? candidate?.result) && (
                       <>
-                        <p className="verified">✓ 線図からの再計算で厳密一致</p>
-                        <Canvas
-                          key={candidate.title}
-                          diagram={candidate.diagram}
-                          select={() => {}}
-                          change={() => {}}
-                          setWire={() => {}}
-                          readonly
-                        />
-                        <p className="explanation">
-                          {candidate.explanation}{" "}
-                          「全体表示」で全体を確認し、拡大すると配線や式を詳しく見られます。
-                        </p>
-                        <button
-                          className="secondary"
-                          onClick={() => {
-                            change(candidate.diagram);
-                            select("");
-                            setWire(undefined);
-                            setTab("diagram");
-                            setAnswer({
-                              data: candidate.result,
-                              key: JSON.stringify(candidate.diagram),
-                            });
-                          }}
-                        >
-                          この線図を編集する →
-                        </button>
+                        <div className="equations">
+                          {(current ?? candidate!.result).equations.map(
+                            (eq, i) => (
+                              <div key={i}>{eq}</div>
+                            ),
+                          )}
+                        </div>
+                        <h4>行列式から伝達関数を求める</h4>
+                        <div className="equations">
+                          {(current ?? candidate!.result).derivation.map(
+                            (step, i) => (
+                              <div key={i}>{step}</div>
+                            ),
+                          )}
+                        </div>
+                        <h4>成立条件と注意</h4>
+                        <ul>
+                          {(current ?? candidate!.result).conditions.map(
+                            (c) => (
+                              <li key={c}>
+                                <code>{c}</code>
+                              </li>
+                            ),
+                          )}
+                          {(current ?? candidate!.result).notes.map((c) => (
+                            <li key={c}>{c}</li>
+                          ))}
+                        </ul>
                       </>
                     )}
-                  </div>
-                )}
-                {current && (
-                  <section className="learning-section">
-                    <h3>基本公式でたどる計算</h3>
-                    {current.learning.map((step, i) => (
-                      <details key={i} className="learning-step">
-                        <summary>
-                          {i + 1}. {step.title}
-                        </summary>
-                        <p>{step.explanation}</p>
-                        <Formula tex={step.tex} />
-                        <Canvas
-                          key={`${diagramKey}-${i}`}
-                          diagram={step.diagram}
-                          readonly
-                          select={() => {}}
-                          change={() => {}}
-                          setWire={() => {}}
-                        />
-                        <p className="verified">✓ 元の伝達関数と厳密一致</p>
-                      </details>
-                    ))}
-                    <p className="explanation">{current.learningNote}</p>
-                  </section>
-                )}
-                <details className="calculation-details" open>
-                  <summary>
-                    <span className="step">3</span>計算過程・解説
-                  </summary>
-                  <p>
-                    各要素の出力を x1, x2, …、外部入力を U
-                    として、信号方程式を立てます。ブロックの伝達関数と入力符号を反映し、係数行列を
-                    A
-                    とし、分数なし消去法で行列式を厳密に計算します。出力の列を入力係数に置き換えた行列式との比から
-                    Y/U を求めます。
-                  </p>
-                  {(current ?? candidate?.result) && (
-                    <>
-                      <div className="equations">
-                        {(current ?? candidate!.result).equations.map(
-                          (eq, i) => (
-                            <div key={i}>{eq}</div>
-                          ),
-                        )}
-                      </div>
-                      <h4>行列式から伝達関数を求める</h4>
-                      <div className="equations">
-                        {(current ?? candidate!.result).derivation.map(
-                          (step, i) => (
-                            <div key={i}>{step}</div>
-                          ),
-                        )}
-                      </div>
-                      <h4>成立条件と注意</h4>
-                      <ul>
-                        {(current ?? candidate!.result).conditions.map((c) => (
-                          <li key={c}>
-                            <code>{c}</code>
-                          </li>
-                        ))}
-                        {(current ?? candidate!.result).notes.map((c) => (
-                          <li key={c}>{c}</li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  {currentGenerated?.limitations.map((t) => (
-                    <p className="limitation" key={t}>
-                      {t}
-                    </p>
-                  ))}
-                </details>
-                <details className="compare-section">
-                  <summary>別の答えと等価か比較する</summary>
-                  <p>
-                    自分で求めた式を入力してください。係数の特殊な値を除き、有理式の差が厳密に0か確認します。
-                  </p>
-                  <FractionInput
-                    prefix="比較する式"
-                    num={cmpNum}
-                    den={cmpDen}
-                    onChange={(n, d) => {
-                      setCmpNum(n);
-                      setCmpDen(d);
-                    }}
-                  />
-                  <button
-                    className="secondary"
-                    onClick={compare}
-                    disabled={busy || !cmpNum}
-                  >
-                    等価性を確認
-                  </button>
-                  {shownComparison && (
-                    <div
-                      className={
-                        shownComparison.equal
-                          ? "comparison yes"
-                          : "comparison no"
-                      }
-                      role="status"
-                    >
-                      <strong>
-                        {shownComparison.equal
-                          ? "✓ 有理式として等価です"
-                          : "入力された式とは等価ではありません"}
-                      </strong>
-                      <Formula small tex={shownComparison.tex} />
-                      <p>
-                        分母が0になる係数条件や内部安定性は別途確認してください。
+                    {currentGenerated?.limitations.map((t) => (
+                      <p className="limitation" key={t}>
+                        {t}
                       </p>
-                      {shownComparison.conditions.map((c) => (
-                        <p key={c}>
-                          <code>{c}</code>
+                    ))}
+                  </details>
+                  <details className="compare-section">
+                    <summary>別の答えと等価か比較する</summary>
+                    <p>
+                      自分で求めた式を入力してください。係数の特殊な値を除き、有理式の差が厳密に0か確認します。
+                    </p>
+                    <FractionInput
+                      prefix="比較する式"
+                      num={cmpNum}
+                      den={cmpDen}
+                      onChange={(n, d) => {
+                        setCmpNum(n);
+                        setCmpDen(d);
+                      }}
+                    />
+                    <button
+                      className="secondary"
+                      onClick={compare}
+                      disabled={busy || !cmpNum}
+                    >
+                      等価性を確認
+                    </button>
+                    {shownComparison && (
+                      <div
+                        className={
+                          shownComparison.equal
+                            ? "comparison yes"
+                            : "comparison no"
+                        }
+                        role="status"
+                      >
+                        <strong>
+                          {shownComparison.equal
+                            ? "✓ 有理式として等価です"
+                            : "入力された式とは等価ではありません"}
+                        </strong>
+                        <Formula small tex={shownComparison.tex} />
+                        <p>
+                          分母が0になる係数条件や内部安定性は別途確認してください。
                         </p>
-                      ))}
-                    </div>
-                  )}
-                </details>
-              </>
-            ) : (
-              <div className="empty-result">
-                <div className="empty-icon" aria-hidden="true">
-                  ƒ
+                        {shownComparison.conditions.map((c) => (
+                          <p key={c}>
+                            <code>{c}</code>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </details>
+                </>
+              ) : (
+                <div className="empty-result">
+                  <div className="empty-icon" aria-hidden="true">
+                    ƒ
+                  </div>
+                  <h3>
+                    {busy
+                      ? "記号式を計算しています"
+                      : "ここに答えが表示されます"}
+                  </h3>
+                  <p>
+                    {tab === "diagram"
+                      ? "線図を編集して、青い計算ボタンを押してください。まずは負帰還の例題で試せます。"
+                      : "伝達関数を入力して、青い生成ボタンを押してください。"}
+                    {(answer || generated) && " 編集後は再計算してください。"}
+                  </p>
+                  <div className="result-flow">
+                    入力 <span>→</span> 答え <span>→</span> 計算過程
+                  </div>
                 </div>
-                <h3>
-                  {busy ? "記号式を計算しています" : "ここに答えが表示されます"}
-                </h3>
-                <p>
-                  {tab === "diagram"
-                    ? "線図を編集して、青い計算ボタンを押してください。まずは負帰還の例題で試せます。"
-                    : "伝達関数を入力して、青い生成ボタンを押してください。"}
-                  {(answer || generated) && " 編集後は再計算してください。"}
-                </p>
-                <div className="result-flow">
-                  入力 <span>→</span> 答え <span>→</span> 計算過程
-                </div>
-              </div>
-            )}
-          </aside>
-        </div>
+              )}
+            </aside>
+          </div>
+        )}
         <aside className="ad-slot" aria-label="広告掲載予定スペース">
           <span>広告掲載予定スペース</span>
         </aside>

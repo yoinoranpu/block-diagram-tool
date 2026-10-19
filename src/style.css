@@ -1632,3 +1632,118 @@ main {
     flex-shrink: 0;
   }
 }
+.state-input,
+.state-output {
+  padding: 18px;
+}
+.state-input > .primary {
+  width: 100%;
+  margin-top: 16px;
+}
+.state-actions,
+.state-diagram-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+  align-items: center;
+}
+.state-actions select {
+  min-height: 40px;
+  margin-left: 8px;
+}
+.matrix-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 20px 0;
+}
+.matrix-fields fieldset {
+  border: 1px solid #dae3ef;
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.matrix-fields legend {
+  padding: 0 5px;
+  font-weight: 600;
+}
+.matrix-fields table {
+  border-spacing: 3px;
+}
+.matrix-fields input {
+  width: 74px;
+  min-width: 0;
+  min-height: 42px;
+  font-size: 16px;
+  text-align: center;
+  margin-bottom: 3px;
+  padding: 4px;
+}
+.matrix-row {
+  display: flex;
+  gap: 4px;
+}
+.state-output pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.state-diagram-scroll {
+  overflow: auto;
+  border: 1px solid #e1e7f0;
+  background: #fafcff;
+}
+.state-diagram-scroll svg {
+  display: block;
+  min-width: 300px;
+  height: auto;
+}
+.state-diagram .wire {
+  fill: none;
+  stroke: #53677f;
+  stroke-width: 1.8;
+}
+.state-diagram .node-body {
+  fill: white;
+  stroke: #607991;
+  stroke-width: 1.5;
+}
+.state-diagram text {
+  fill: #24334a;
+  font-family: Arial, sans-serif;
+}
+.state-diagram .node-label {
+  font-size: 16px;
+}
+.state-diagram .node-expression {
+  font-size: 18px;
+}
+.state-diagram .terminal-label {
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .tabs button {
+    white-space: normal;
+    font-size: 11px;
+    line-height: 1.5;
+    padding-inline: 0;
+  }
+  .tabs button span {
+    display: none;
+  }
+  .state-input,
+  .state-output {
+    padding: 12px;
+  }
+}
+.state-diagram-scroll {
+  max-height: 70vh;
+}
