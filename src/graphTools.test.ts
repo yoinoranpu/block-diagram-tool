@@ -8,7 +8,7 @@ import {
   insertOnEdge,
 } from "./graphTools";
 import { example } from "./model";
-import { solve, equal } from "./engine";
+import { solve, equal, generate } from "./engine";
 it("未接続と二重接続、出力につながらない要素を検出", () => {
   const d = example("series");
   expect(inspectWiring(d)).toHaveLength(0);
@@ -66,3 +66,37 @@ it("整列は乱れた座標に影響されず、帰還ブロックを戻り方�
     clean.nodes.find((n) => n.id === "g")!.y,
   );
 });
+
+it.each([
+  ["K", "(s+a)*(s+b)"],
+  ["s^2+2*s+3", "s^3+3*s^2+2*s+1"],
+  ["s^3+2*s+1", "s^3+3*s^2+2*s+1"],
+])(
+  "積分器線図は整列を繰り返しても連鎖と出力の位置・計算を保つ：%s",
+  (num, den) => {
+    const original = generate(num, den).candidates.find(
+      (c) => c.title === "積分器による構成",
+    )!.diagram;
+    const scrambled = {
+      ...original,
+      nodes: original.nodes.map((n, i) => ({
+        ...n,
+        x: 80 + (i % 5) * 170,
+        y: 80 + Math.floor(i / 5) * 160,
+      })),
+    };
+    const arranged = arrangeDiagram(scrambled);
+    expect(arrangeDiagram(arranged)).toEqual(arranged);
+    expect(arranged.nodes.find((n) => n.id === "y")!.x).toBeGreaterThan(
+      arranged.nodes.find((n) => n.id === "i1")!.x,
+    );
+    expect(arranged.nodes.find((n) => n.id === "z")!.x).toBeGreaterThan(
+      arranged.nodes.find((n) => n.id === "i1")!.x,
+    );
+    expect(arranged.edges).toEqual(original.edges);
+    expect(
+      equal(solve(arranged, false).value, solve(original, false).value),
+    ).toBe(true);
+    expect(routeEdges(arranged).every((r) => !r.obstructed)).toBe(true);
+  },
+);

@@ -1547,3 +1547,88 @@ input[aria-invalid="true"] {
     width: 100%;
   }
 }
+
+/* Start editing immediately; reserve future ads below the working area. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.site-header {
+  height: 48px;
+}
+main {
+  padding-top: 12px;
+}
+.tabs {
+  margin-bottom: 12px;
+}
+.tabs button {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.ad-slot {
+  min-height: 90px;
+  max-width: 728px;
+  margin: 20px auto 0;
+  border: 1px dashed #d9e1eb;
+  border-radius: 6px;
+  background: #f9fafc;
+  display: grid;
+  place-items: center;
+  color: #94a0af;
+  font-size: 11px;
+}
+@media (max-width: 600px) {
+  .site-header {
+    height: 44px;
+  }
+  main {
+    padding-top: 8px;
+  }
+  .panel-heading {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .examples {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .editor-toolbar {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .ad-slot {
+    min-height: 100px;
+    max-width: 320px;
+  }
+}
+@media (max-width: 600px) {
+  .examples {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .examples > span {
+    width: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .examples button {
+    flex-shrink: 0;
+  }
+  .add-tools {
+    flex: 1;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .add-tools button,
+  .undo-tools {
+    flex-shrink: 0;
+  }
+}
