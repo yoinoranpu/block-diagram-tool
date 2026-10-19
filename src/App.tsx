@@ -684,6 +684,13 @@ export default function App() {
                       配線を中止
                     </button>
                   )}
+                  <button
+                    className="primary diagram-calculate"
+                    disabled={busy}
+                    onClick={run}
+                  >
+                    {busy ? "計算しています…" : "全体の伝達関数を求める"}
+                  </button>
                 </div>
                 <Canvas
                   fileActions={
@@ -893,21 +900,15 @@ export default function App() {
                 <p className="field-hint">{saveStatus}</p>
               </div>
             )}
-            <div className="calculate-bar">
-              <span>
-                {tab === "diagram"
-                  ? "初期値0 · 1入力1出力"
-                  : "記号係数・高次の有理式に対応"}
-              </span>
-              <button className="primary" disabled={busy} onClick={run}>
-                {busy
-                  ? "計算しています…"
-                  : tab === "diagram"
-                    ? "全体の伝達関数を求める"
-                    : "等価な線図を生成する"}
-                <span aria-hidden="true">→</span>
-              </button>
-            </div>
+            {tab === "formula" && (
+              <div className="calculate-bar">
+                <span>記号係数・高次の有理式に対応</span>
+                <button className="primary" disabled={busy} onClick={run}>
+                  {busy ? "計算しています…" : "等価な線図を生成する"}
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            )}
           </section>
           <aside ref={resultRef} className="result-panel panel">
             <div className="panel-heading">

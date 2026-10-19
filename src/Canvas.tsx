@@ -9,7 +9,13 @@ import {
   inputSide,
   outputSide,
 } from "./routing";
-import { inspectWiring, traceSignal, snap, arrangeDiagram } from "./graphTools";
+import {
+  inspectWiring,
+  traceSignal,
+  snap,
+  arrangeDiagram,
+  insertOnEdge,
+} from "./graphTools";
 import { downloadDiagram } from "./exportDiagram";
 import type { Diagram, DiagramNode } from "./model";
 export const labels = {
@@ -47,6 +53,7 @@ export function Canvas({
     x: number;
     y: number;
     key: number;
+    graph?: { x: number; y: number };
   }>();
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{
@@ -68,7 +75,7 @@ export function Canvas({
   );
   const [moving, setMoving] = useState<DiagramNode>();
   const nodes = diagram.nodes.map((n) => (moving?.id === n.id ? moving : n));
-  function point(e: React.PointerEvent) {
+  function point(e: { clientX: number; clientY: number }) {
     const p = new DOMPoint(e.clientX, e.clientY);
     return p.matrixTransform(svg.current!.getScreenCTM()!.inverse());
   }
@@ -103,6 +110,7 @@ export function Canvas({
     width: Math.max(bounds.width, (bounds.height * size.width) / size.height),
   });
   const fit = () => setCamera(fitted());
+  const activeEdge = diagram.edges.find((e) => e.id === selected);
   const activeBlock = diagram.nodes.find(
     (n) => n.id === selected && n.kind === "block",
   );
@@ -226,64 +234,137 @@ export function Canvas({
   }
   return (
     <div className={`canvas-shell ${readonly ? "readonly" : ""}`}>
-      {!readonly && activeBlock && !detailsOpen && (
-        <div className="node-actions">
-          <strong>{activeBlock.label} を直接編集</strong>
-          <ActionMenu
-            key={context && context.id === selected ? context.key : selected}
-            label="ブロック操作"
-            initialOpen={!!context && context.id === selected}
-            position={context && context.id === selected ? context : undefined}
-          >
-            <button
-              onClick={() =>
-                change({
-                  ...diagram,
-                  nodes: diagram.nodes.map((n) =>
-                    n.id === activeBlock.id
-                      ? { ...n, reversed: !n.reversed }
-                      : n,
-                  ),
-                })
-              }
-            >
-              左右反転
-            </button>
-            <button
-              disabled={diagram.nodes.length >= 16}
-              onClick={() => {
-                if (diagram.nodes.length >= 16) return;
-                const copy = {
-                  ...activeBlock,
-                  id: crypto.randomUUID(),
-                  x: Math.min(920, activeBlock.x + 40),
-                  y: Math.min(560, activeBlock.y + 40),
-                  label: (activeBlock.label + " コピー").slice(0, 40),
-                };
-                change({ ...diagram, nodes: [...diagram.nodes, copy] });
-                select(copy.id);
-              }}
-            >
-              複製
-            </button>
-            <button
-              onClick={() => {
-                change({
-                  nodes: diagram.nodes.filter((n) => n.id !== activeBlock.id),
-                  edges: diagram.edges.filter(
-                    (e) => e.from !== activeBlock.id && e.to !== activeBlock.id,
-                  ),
-                });
-                select("");
-              }}
-            >
-              削除
-            </button>
-            {openDetails && <button onClick={openDetails}>詳細設定</button>}
-          </ActionMenu>
-          <button aria-label="編集欄を閉じる" onClick={() => select("")}>
-            完了
-          </button>
+      {!readonly && (
+        <div className="node-actions selection-bar">
+          {activeBlock && !detailsOpen ? (
+            <>
+              <strong>{activeBlock.label} を直接編集</strong>
+              <ActionMenu
+                key={
+                  context && context.id === selected ? context.key : selected
+                }
+                label="ブロック操作"
+                initialOpen={!!context && context.id === selected}
+                position={
+                  context && context.id === selected ? context : undefined
+                }
+              >
+                <button
+                  onClick={() =>
+                    change({
+                      ...diagram,
+                      nodes: diagram.nodes.map((n) =>
+                        n.id === activeBlock.id
+                          ? { ...n, reversed: !n.reversed }
+                          : n,
+                      ),
+                    })
+                  }
+                >
+                  左右反転
+                </button>
+                <button
+                  disabled={diagram.nodes.length >= 16}
+                  onClick={() => {
+                    if (diagram.nodes.length >= 16) return;
+                    const copy = {
+                      ...activeBlock,
+                      id: crypto.randomUUID(),
+                      x: Math.min(920, activeBlock.x + 40),
+                      y: Math.min(560, activeBlock.y + 40),
+                      label: (activeBlock.label + " コピー").slice(0, 40),
+                    };
+                    change({ ...diagram, nodes: [...diagram.nodes, copy] });
+                    select(copy.id);
+                  }}
+                >
+                  複製
+                </button>
+                <button
+                  onClick={() => {
+                    change({
+                      nodes: diagram.nodes.filter(
+                        (n) => n.id !== activeBlock.id,
+                      ),
+                      edges: diagram.edges.filter(
+                        (e) =>
+                          e.from !== activeBlock.id && e.to !== activeBlock.id,
+                      ),
+                    });
+                    select("");
+                  }}
+                >
+                  削除
+                </button>
+                {openDetails && <button onClick={openDetails}>詳細設定</button>}
+              </ActionMenu>
+              <button aria-label="編集欄を閉じる" onClick={() => select("")}>
+                完了
+              </button>
+            </>
+          ) : activeEdge ? (
+            <>
+              <strong>選択した線の途中に追加</strong>
+              <ActionMenu
+                key={
+                  context && context.id === selected ? context.key : selected
+                }
+                label="線の操作"
+                initialOpen={!!context && context.id === selected}
+                position={
+                  context && context.id === selected ? context : undefined
+                }
+              >
+                {(["block", "branch", "sum"] as const).map((kind) => (
+                  <button
+                    key={kind}
+                    disabled={
+                      diagram.nodes.length >= 16 || diagram.edges.length >= 32
+                    }
+                    onClick={() => {
+                      const route = routes.find((r) => r.edge.id === selected)!;
+                      const a =
+                          route.points[
+                            Math.max(0, Math.floor(route.points.length / 2) - 1)
+                          ],
+                        b = route.points[Math.floor(route.points.length / 2)];
+                      const middle =
+                        context && context.id === selected && context.graph
+                          ? context.graph
+                          : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+                      const next = insertOnEdge(
+                        diagram,
+                        activeEdge.id,
+                        kind,
+                        middle,
+                      );
+                      change(next);
+                      select(next.nodes[next.nodes.length - 1].id);
+                      setWire(undefined);
+                    }}
+                  >
+                    {labels[kind]}を途中に追加
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    change({
+                      ...diagram,
+                      edges: diagram.edges.filter((e) => e.id !== selected),
+                    });
+                    select("");
+                  }}
+                >
+                  配線を削除
+                </button>
+              </ActionMenu>
+              <button aria-label="線の選択を解除" onClick={() => select("")}>
+                完了
+              </button>
+            </>
+          ) : (
+            <span>要素・線を選ぶと操作メニューが表示されます</span>
+          )}
         </div>
       )}
       {!readonly && (
@@ -307,6 +388,17 @@ export function Canvas({
         </details>
       )}
       <div className="view-controls" aria-label="線図の表示と画像保存">
+        {!readonly && (
+          <button
+            onClick={() => {
+              change(arrangeDiagram(diagram));
+              setFitVersion((v) => v + 1);
+            }}
+            title="配線を保ったまま要素を整列します。元に戻すこともできます"
+          >
+            線図を整える
+          </button>
+        )}
         <ActionMenu label="表示・配置">
           <button aria-label="縮小" onClick={() => zoomBy(1.25)}>
             −
@@ -318,14 +410,6 @@ export function Canvas({
           <button onClick={fit}>全体表示</button>
           {!readonly && (
             <>
-              <button
-                onClick={() => {
-                  change(arrangeDiagram(diagram));
-                  setFitVersion((v) => v + 1);
-                }}
-              >
-                自動整列
-              </button>
               <label className="snap-toggle">
                 <input
                   type="checkbox"
@@ -432,6 +516,18 @@ export function Canvas({
             return (
               <g
                 key={e.id}
+                onContextMenu={(ev) => {
+                  if (readonly) return;
+                  ev.preventDefault();
+                  select(e.id);
+                  setContext({
+                    id: e.id,
+                    x: ev.clientX,
+                    y: ev.clientY,
+                    key: Date.now(),
+                    graph: point(ev),
+                  });
+                }}
                 className={`edge-group ${selected === e.id ? "highlighted" : ""} ${signal.edges.has(e.id) ? "on-path" : ""}`}
               >
                 <title>
@@ -450,7 +546,12 @@ export function Canvas({
                   className="export-hide wire-hit"
                   stroke="transparent"
                   strokeWidth="18"
-                  onClick={() => !readonly && select(e.id)}
+                  onClick={() => {
+                    if (!readonly) {
+                      setContext(undefined);
+                      select(e.id);
+                    }
+                  }}
                   style={{ cursor: "pointer" }}
                 />
                 {b.kind === "sum" && (
@@ -594,17 +695,6 @@ export function Canvas({
               }}
               onPointerUp={(e) => {
                 if (drag.current?.id !== n.id) return;
-                if (
-                  !drag.current.moved &&
-                  n.kind === "block" &&
-                  size.width < 600
-                )
-                  setCamera((c) => ({
-                    ...c,
-                    x: n.x,
-                    y: n.y,
-                    width: Math.min(c.width, 260),
-                  }));
                 if (movingRef.current && drag.current.moved)
                   change({
                     ...diagram,
@@ -693,15 +783,6 @@ export function Canvas({
                           maxLength={300}
                           autoCapitalize="off"
                           spellCheck={false}
-                          onFocus={() => {
-                            if (size.width < 600)
-                              setCamera((c) => ({
-                                ...c,
-                                x: n.x,
-                                y: n.y,
-                                width: Math.min(c.width, 320),
-                              }));
-                          }}
                           onChange={(e) =>
                             updateBlock(
                               n.id,

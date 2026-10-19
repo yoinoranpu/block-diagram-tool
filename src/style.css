@@ -1518,3 +1518,32 @@ input[aria-invalid="true"] {
   left: 0;
   right: auto;
 }
+.selection-bar {
+  min-height: 46px;
+  box-sizing: border-box;
+}
+.selection-bar > span {
+  font-size: 11px;
+  color: #6d809a;
+}
+.canvas-guide .diagram-calculate {
+  flex-shrink: 0;
+  font-size: 12px;
+  min-height: 40px;
+}
+.view-controls > .action-menu .action-menu-panel {
+  left: 0;
+  right: auto;
+}
+.view-controls > .action-menu:last-child .action-menu-panel {
+  left: auto;
+  right: 0;
+}
+@media (max-width: 600px) {
+  .canvas-guide {
+    flex-wrap: wrap;
+  }
+  .canvas-guide .diagram-calculate {
+    width: 100%;
+  }
+}

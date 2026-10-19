@@ -103,6 +103,7 @@ export function arrangeDiagram(d: Diagram): Diagram {
     ? [input!.id, ...path.map((id) => d.edges.find((e) => e.id === id)!.to)]
     : [];
   const rest = d.nodes.filter((n) => !main.includes(n.id));
+  const reversed = new Map<string, boolean>();
   const positions = new Map<string, { x: number; y: number }>();
   if (main.length >= 2 && main.length <= 6 && rest.length <= 10) {
     main.forEach((id, i) =>
@@ -115,9 +116,48 @@ export function arrangeDiagram(d: Diagram): Diagram {
       x: 180 + (i % 5) * 170,
       y: i < 5 ? 80 : 520,
     }));
-    for (const n of rest) {
-      slots.sort((a, b) => Math.abs(a.x - n.x) - Math.abs(b.x - n.x));
+    // Locate each side path by its connections, independent of dragged coordinates.
+    const anchor = (id: string, backward: boolean) => {
+      const queue = [{ id, steps: 0 }],
+        seen = new Set([id]);
+      while (queue.length) {
+        const current = queue.shift()!;
+        if (positions.has(current.id) && main.includes(current.id))
+          return { x: positions.get(current.id)!.x, steps: current.steps };
+        for (const edge of d.edges) {
+          const next = backward
+            ? edge.to === current.id
+              ? edge.from
+              : undefined
+            : edge.from === current.id
+              ? edge.to
+              : undefined;
+          if (next && !seen.has(next)) {
+            seen.add(next);
+            queue.push({ id: next, steps: current.steps + 1 });
+          }
+        }
+      }
+      return undefined;
+    };
+    for (const id of main) reversed.set(id, false);
+    for (const n of [...rest].sort((a, b) => a.id.localeCompare(b.id))) {
+      const up = anchor(n.id, true),
+        down = anchor(n.id, false);
+      const feedback = !!up && !!down && up.x > down.x;
+      const x =
+        up && down
+          ? (up.x * down.steps + down.x * up.steps) / (up.steps + down.steps)
+          : (up?.x ?? down?.x ?? 500);
+      const y = feedback ? 520 : 80;
+      slots.sort(
+        (a, b) =>
+          Math.abs(a.x - x) +
+          3 * Math.abs(a.y - y) -
+          (Math.abs(b.x - x) + 3 * Math.abs(b.y - y)),
+      );
       positions.set(n.id, slots.shift()!);
+      reversed.set(n.id, feedback);
     }
   } else {
     const order = [...main, ...rest.map((n) => n.id)];
@@ -132,6 +172,71 @@ export function arrangeDiagram(d: Diagram): Diagram {
   }
   return {
     ...d,
-    nodes: d.nodes.map((n) => ({ ...n, ...positions.get(n.id) })),
+    nodes: d.nodes.map((n) => ({
+      ...n,
+      ...positions.get(n.id),
+      reversed: reversed.get(n.id) ?? n.reversed,
+    })),
   };
+}
+
+/** Split a signal edge, preserving its downstream summing sign. */
+export function insertOnEdge(
+  d: Diagram,
+  edgeId: string,
+  kind: "block" | "branch" | "sum",
+  position?: { x: number; y: number },
+): Diagram {
+  const edge = d.edges.find((e) => e.id === edgeId);
+  if (!edge || d.nodes.length >= 16 || d.edges.length >= 32) return d;
+  const from = d.nodes.find((n) => n.id === edge.from)!,
+    to = d.nodes.find((n) => n.id === edge.to)!;
+  const node = {
+    id: crypto.randomUUID(),
+    kind,
+    label: kind === "block" ? "G" : kind === "branch" ? "分岐点" : "加算点",
+    num: "1",
+    den: "1",
+    x: snap(position?.x ?? (from.x + to.x) / 2),
+    y: snap(position?.y ?? (from.y + to.y) / 2),
+    reversed: from.x > to.x,
+  };
+  // Find a nearby empty slot so insertion never hides another element.
+  const width = kind === "block" ? 64 : 34,
+    height = kind === "block" ? 43 : 23;
+  const candidates = Array.from({ length: 45 * 26 }, (_, i) => ({
+    x: 60 + (i % 45) * 20,
+    y: 50 + Math.floor(i / 45) * 20,
+  }));
+  candidates.sort(
+    (a, b) =>
+      Math.hypot(a.x - node.x, a.y - node.y) -
+      Math.hypot(b.x - node.x, b.y - node.y),
+  );
+  const free = candidates.find((p) =>
+    d.nodes.every(
+      (n) =>
+        Math.abs(p.x - n.x) >= width + (n.kind === "block" ? 64 : 34) + 16 ||
+        Math.abs(p.y - n.y) >= height + (n.kind === "block" ? 43 : 24) + 16,
+    ),
+  );
+  if (free) Object.assign(node, free);
+  const result: Diagram = {
+    ...d,
+    nodes: [...d.nodes, node],
+    edges: d.edges.flatMap((e) =>
+      e.id === edgeId
+        ? [
+            {
+              id: crypto.randomUUID(),
+              from: e.from,
+              to: node.id,
+              sign: 1 as const,
+            },
+            { ...e, from: node.id },
+          ]
+        : [e],
+    ),
+  };
+  return free ? result : arrangeDiagram(result);
 }

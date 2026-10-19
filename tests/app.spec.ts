@@ -290,8 +290,7 @@ test("配線不足の表示、整列、経路の強調、基本公式の途中�
   await expect(page.locator(".wiring-check summary")).toContainText(
     "未接続・二重接続なし",
   );
-  await page.getByRole("button", { name: "表示・配置" }).click();
-  await page.getByRole("button", { name: "自動整列", exact: true }).click();
+  await page.getByRole("button", { name: "線図を整える", exact: true }).click();
   await page.getByRole("button", { name: "表示・配置" }).click();
   await expect(page.getByRole("checkbox", { name: "吸着" })).toBeChecked();
   await page.getByRole("button", { name: "表示・配置" }).click();
@@ -372,4 +371,58 @@ test("右クリックと選択メニューから反転でき、Escapeと外側�
   await page.getByRole("button", { name: "保存・読込" }).click();
   await page.getByRole("heading", { name: "ブロック線図を作る" }).click();
   await expect(page.getByRole("button", { name: "JSON保存" })).toBeHidden();
+});
+
+test("ブロック選択で線図がずれず、計算ボタンは線図の前にある", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "直列", exact: true }).click();
+  const canvas = page.locator(".diagram-canvas");
+  await canvas.scrollIntoViewIfNeeded();
+  const before = await canvas.boundingBox(),
+    camera = await canvas.getAttribute("viewBox");
+  const calculate = await page
+    .getByRole("button", { name: "全体の伝達関数を求める", exact: true })
+    .boundingBox();
+  expect(calculate!.y + calculate!.height).toBeLessThanOrEqual(before!.y);
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole("button", { name: "伝達関数 G", exact: true }).click();
+    const after = await canvas.boundingBox();
+    expect(Math.abs(after!.y - before!.y)).toBeLessThan(1);
+    expect(await canvas.getAttribute("viewBox")).toBe(camera);
+    await page.getByRole("button", { name: "編集欄を閉じる" }).click();
+  }
+});
+
+test("線の右クリックとタップ選択から途中に要素を追加し、元に戻せる", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "直列", exact: true }).click();
+  const edge = page.locator(".wire-hit").first();
+  async function clickWire(button: "left" | "right" = "left") {
+    await page.locator(".diagram-canvas").scrollIntoViewIfNeeded();
+    const p = await edge.evaluate((element) => {
+      const path = element as SVGPathElement;
+      const p = path.getPointAtLength(path.getTotalLength() / 2);
+      const screen = new DOMPoint(p.x, p.y).matrixTransform(
+        path.getScreenCTM()!,
+      );
+      return { x: screen.x, y: screen.y };
+    });
+    await page.mouse.click(p.x, p.y, { button });
+  }
+  await clickWire("right");
+  await page.getByRole("button", { name: "伝達関数を途中に追加" }).click();
+  await expect(page.locator(".diagram-node")).toHaveCount(5);
+  await expect(page.locator(".edge-group")).toHaveCount(4);
+  await page.getByRole("button", { name: "元に戻す", exact: true }).click();
+  await expect(page.locator(".diagram-node")).toHaveCount(4);
+  await clickWire();
+  await page.getByRole("button", { name: "線の操作" }).click();
+  await page.getByRole("button", { name: "分岐点を途中に追加" }).click();
+  await expect(page.locator(".diagram-node")).toHaveCount(5);
+  await page
+    .getByRole("button", { name: "全体の伝達関数を求める", exact: true })
+    .click();
+  await expect(page.locator(".result-status")).toBeVisible();
 });
