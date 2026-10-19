@@ -1,3 +1,4 @@
+import { ActionMenu } from "./ActionMenu";
 import { normalizeFormula, isUnityDenominator } from "./normalizeInput";
 import { useRef, useState, useMemo, useLayoutEffect, useId } from "react";
 import {
@@ -28,6 +29,7 @@ export function Canvas({
   readonly = false,
   openDetails,
   detailsOpen = false,
+  fileActions,
 }: {
   diagram: Diagram;
   selected?: string;
@@ -38,7 +40,14 @@ export function Canvas({
   readonly?: boolean;
   openDetails?: () => void;
   detailsOpen?: boolean;
+  fileActions?: React.ReactNode;
 }) {
+  const [context, setContext] = useState<{
+    id: string;
+    x: number;
+    y: number;
+    key: number;
+  }>();
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{
     id: string;
@@ -220,36 +229,58 @@ export function Canvas({
       {!readonly && activeBlock && !detailsOpen && (
         <div className="node-actions">
           <strong>{activeBlock.label} を直接編集</strong>
-          <button
-            onClick={() => {
-              if (diagram.nodes.length >= 16) return;
-              const copy = {
-                ...activeBlock,
-                id: crypto.randomUUID(),
-                x: Math.min(920, activeBlock.x + 40),
-                y: Math.min(560, activeBlock.y + 40),
-                label: (activeBlock.label + " コピー").slice(0, 40),
-              };
-              change({ ...diagram, nodes: [...diagram.nodes, copy] });
-              select(copy.id);
-            }}
+          <ActionMenu
+            key={context && context.id === selected ? context.key : selected}
+            label="ブロック操作"
+            initialOpen={!!context && context.id === selected}
+            position={context && context.id === selected ? context : undefined}
           >
-            複製
-          </button>
-          <button
-            onClick={() => {
-              change({
-                nodes: diagram.nodes.filter((n) => n.id !== activeBlock.id),
-                edges: diagram.edges.filter(
-                  (e) => e.from !== activeBlock.id && e.to !== activeBlock.id,
-                ),
-              });
-              select("");
-            }}
-          >
-            削除
-          </button>
-          {openDetails && <button onClick={openDetails}>詳細設定</button>}
+            <button
+              onClick={() =>
+                change({
+                  ...diagram,
+                  nodes: diagram.nodes.map((n) =>
+                    n.id === activeBlock.id
+                      ? { ...n, reversed: !n.reversed }
+                      : n,
+                  ),
+                })
+              }
+            >
+              左右反転
+            </button>
+            <button
+              disabled={diagram.nodes.length >= 16}
+              onClick={() => {
+                if (diagram.nodes.length >= 16) return;
+                const copy = {
+                  ...activeBlock,
+                  id: crypto.randomUUID(),
+                  x: Math.min(920, activeBlock.x + 40),
+                  y: Math.min(560, activeBlock.y + 40),
+                  label: (activeBlock.label + " コピー").slice(0, 40),
+                };
+                change({ ...diagram, nodes: [...diagram.nodes, copy] });
+                select(copy.id);
+              }}
+            >
+              複製
+            </button>
+            <button
+              onClick={() => {
+                change({
+                  nodes: diagram.nodes.filter((n) => n.id !== activeBlock.id),
+                  edges: diagram.edges.filter(
+                    (e) => e.from !== activeBlock.id && e.to !== activeBlock.id,
+                  ),
+                });
+                select("");
+              }}
+            >
+              削除
+            </button>
+            {openDetails && <button onClick={openDetails}>詳細設定</button>}
+          </ActionMenu>
           <button aria-label="編集欄を閉じる" onClick={() => select("")}>
             完了
           </button>
@@ -276,7 +307,7 @@ export function Canvas({
         </details>
       )}
       <div className="view-controls" aria-label="線図の表示と画像保存">
-        <div>
+        <ActionMenu label="表示・配置">
           <button aria-label="縮小" onClick={() => zoomBy(1.25)}>
             −
           </button>
@@ -285,8 +316,6 @@ export function Canvas({
             ＋
           </button>
           <button onClick={fit}>全体表示</button>
-        </div>
-        <div>
           {!readonly && (
             <>
               <button
@@ -307,6 +336,9 @@ export function Canvas({
               </label>
             </>
           )}
+        </ActionMenu>
+        <ActionMenu label={fileActions ? "保存・読込" : "画像保存"}>
+          {fileActions}
           <button
             disabled={exporting || !diagram.nodes.length}
             onClick={() => save("png")}
@@ -319,7 +351,7 @@ export function Canvas({
           >
             SVG保存
           </button>
-        </div>
+        </ActionMenu>
       </div>
       {exportError && (
         <p className="canvas-warning" role="alert">
@@ -489,14 +521,32 @@ export function Canvas({
               onKeyDown={(e) => {
                 if (e.key === "Enter") select(n.id);
               }}
+              onContextMenu={(e) => {
+                if (
+                  readonly ||
+                  n.kind !== "block" ||
+                  (e.target as Element).closest("input")
+                )
+                  return;
+                e.preventDefault();
+                select(n.id);
+                setContext({
+                  id: n.id,
+                  x: e.clientX,
+                  y: e.clientY,
+                  key: Date.now(),
+                });
+              }}
               onPointerDown={(e) => {
                 if (
+                  e.button !== 0 ||
                   readonly ||
                   points.current.size > 1 ||
                   (e.target as Element).closest(".port,.inline-block-editor")
                 )
                   return;
                 e.stopPropagation();
+                setContext(undefined);
                 select(n.id);
                 const p = point(e);
                 drag.current = {

@@ -1,3 +1,4 @@
+import { ActionMenu } from "./ActionMenu";
 import { normalizeFormula } from "./normalizeInput";
 import { useEffect, useRef, useState } from "react";
 import { Canvas, labels } from "./Canvas";
@@ -572,17 +573,19 @@ export default function App() {
                   ? "ブロック線図を作る"
                   : "伝達関数を入力する"}
               </h2>
-              <div className="file-actions">
-                <button onClick={exportJson}>JSON保存</button>
-                <button onClick={() => file.current?.click()}>読込</button>
-                <input
-                  ref={file}
-                  type="file"
-                  accept="application/json,.json"
-                  hidden
-                  onChange={(ev) => importJson(ev.target.files?.[0])}
-                />
-              </div>
+              {tab === "formula" && (
+                <ActionMenu label="保存・読込">
+                  <button onClick={exportJson}>JSON保存</button>
+                  <button onClick={() => file.current?.click()}>読込</button>
+                </ActionMenu>
+              )}
+              <input
+                ref={file}
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={(ev) => importJson(ev.target.files?.[0])}
+              />
             </div>
             {tab === "diagram" ? (
               <>
@@ -683,6 +686,14 @@ export default function App() {
                   )}
                 </div>
                 <Canvas
+                  fileActions={
+                    <>
+                      <button onClick={exportJson}>JSON保存</button>
+                      <button onClick={() => file.current?.click()}>
+                        JSON読込
+                      </button>
+                    </>
+                  }
                   diagram={diagram}
                   selected={selected}
                   select={select}
