@@ -523,19 +523,7 @@ export default function App() {
         <span className="header-note">ログイン不要 · ブラウザ内で計算</span>
       </header>
       <main>
-        <section className="intro">
-          <div>
-            <p className="eyebrow">CONTROL ENGINEERING WORKSPACE</p>
-            <h1>つないで、解いて、理解する。</h1>
-            <p className="intro-copy">
-              ブロック線図と伝達関数を行き来しながら、制御工学を確かめよう。
-            </p>
-          </div>
-          <div className="privacy-chip">
-            <span />
-            データはこのブラウザ内に保存
-          </div>
-        </section>
+        <h1 className="visually-hidden">制御ブロック線図と伝達関数の計算</h1>
         <nav className="tabs" aria-label="計算モード">
           <button
             className={tab === "diagram" ? "active" : ""}
@@ -1137,6 +1125,9 @@ export default function App() {
             )}
           </aside>
         </div>
+        <aside className="ad-slot" aria-label="広告掲載予定スペース">
+          <span>広告掲載予定スペース</span>
+        </aside>
         <footer>
           <p>
             対応範囲：線形・時不変系の有理伝達関数。遅延・非線形要素・多入力多出力は未対応。指数は

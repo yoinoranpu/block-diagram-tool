@@ -41,7 +41,7 @@ describe("直角配線と全体表示の範囲", () => {
     )!.diagram;
     const routes = routeEdges(d),
       incoming = routes.filter((r) => r.edge.to === "q");
-    expect(incoming.filter((r) => r.toSide === "top")).toHaveLength(2);
+    expect(incoming.filter((r) => r.toSide === "bottom")).toHaveLength(2);
     expect(
       new Set(
         incoming.map((r) => r.points.at(-1)!.x + "," + r.points.at(-1)!.y),

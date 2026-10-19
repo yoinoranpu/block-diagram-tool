@@ -96,6 +96,8 @@ export function traceSignal(
 }
 export const snap = (n: number) => Math.round(n / 20) * 20;
 export function arrangeDiagram(d: Diagram): Diagram {
+  const integrator = arrangeIntegrator(d);
+  if (integrator) return integrator;
   const input = d.nodes.find((n) => n.kind === "input"),
     output = d.nodes.find((n) => n.kind === "output");
   const path = input && output ? shortestPath(d, input.id, output.id) : [];
@@ -239,4 +241,93 @@ export function insertOnEdge(
     ),
   };
   return free ? result : arrangeDiagram(result);
+}
+
+/** Recognize the integrator chain by connections, rather than node names. */
+export function arrangeIntegrator(d: Diagram): Diagram | undefined {
+  const input = d.nodes.find((n) => n.kind === "input"),
+    output = d.nodes.find((n) => n.kind === "output");
+  if (!input || !output) return;
+  const q = d.nodes.find(
+    (n) =>
+      n.kind === "sum" &&
+      d.edges.some((e) => e.from === input.id && e.to === n.id),
+  );
+  const z = d.nodes.find(
+    (n) =>
+      n.kind === "sum" &&
+      n.id !== q?.id &&
+      d.edges.some((e) => e.from === n.id && e.to === output.id),
+  );
+  if (!q || !z) return;
+  const states: string[] = [];
+  let previous = q.id;
+  while (states.length < 4) {
+    const next = d.nodes.filter(
+      (n) =>
+        n.kind === "block" &&
+        n.num.trim() === "1" &&
+        n.den.trim() === "s" &&
+        !states.includes(n.id) &&
+        d.edges.some((e) => e.from === previous && e.to === n.id),
+    );
+    if (next.length !== 1) break;
+    states.push(next[0].id);
+    previous = next[0].id;
+  }
+  if (!states.length || states.length > 3) return;
+  const positions = new Map<
+    string,
+    { x: number; y: number; reversed: boolean }
+  >([
+    [input.id, { x: 40, y: 280, reversed: false }],
+    [q.id, { x: 160, y: 280, reversed: false }],
+    [z.id, { x: 900, y: 80, reversed: false }],
+    [output.id, { x: 980, y: 80, reversed: false }],
+  ]);
+  const allowed = new Set([
+    `${input.id}:${q.id}`,
+    `${z.id}:${output.id}`,
+    ...states.map((id, i) => `${i ? states[i - 1] : q.id}:${id}`),
+  ]);
+  states.forEach((id, i) =>
+    positions.set(id, { x: 350 + i * 200, y: 280, reversed: false }),
+  );
+  for (const n of d.nodes.filter((n) => !positions.has(n.id))) {
+    if (n.kind !== "block") return;
+    const incoming = d.edges.filter((e) => e.to === n.id),
+      outgoing = d.edges.filter((e) => e.from === n.id);
+    if (incoming.length !== 1 || outgoing.length !== 1) return;
+    const i = states.indexOf(incoming[0].from);
+    if (i >= 0 && outgoing[0].to === q.id)
+      positions.set(n.id, {
+        x: 350 + i * 200,
+        y: 420 + i * 60,
+        reversed: true,
+      });
+    else if (i >= 0 && outgoing[0].to === z.id)
+      positions.set(n.id, {
+        x: 490 + i * 200,
+        y: 70 + i * 55,
+        reversed: false,
+      });
+    else if (incoming[0].from === input.id && outgoing[0].to === z.id)
+      positions.set(n.id, { x: 140, y: 70, reversed: false });
+    else return;
+    allowed.add(`${incoming[0].from}:${n.id}`);
+    allowed.add(`${n.id}:${outgoing[0].to}`);
+  }
+  if (d.edges.some((e) => !allowed.has(`${e.from}:${e.to}`))) return;
+  if (
+    new Set([...positions.values()].map((p) => `${p.x}:${p.y}`)).size !==
+    positions.size
+  )
+    return;
+  // Reject unfamiliar extra connections instead of misclassifying a user graph.
+  if (new Set(d.edges.map((e) => `${e.from}:${e.to}`)).size !== d.edges.length)
+    return;
+  return {
+    ...d,
+    nodes: d.nodes.map((n) => ({ ...n, ...positions.get(n.id) })),
+  };
 }

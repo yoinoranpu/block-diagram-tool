@@ -1,3 +1,4 @@
+import { arrangeIntegrator } from "./graphTools";
 import { normalizeFormula } from "./normalizeInput";
 import { buildLearning, type LearningStep } from "./learning";
 import nerdamer from "nerdamer/all.js";
@@ -532,7 +533,7 @@ export function generate(
     accept(
       "積分器による構成",
       "可制御正準形の積分器連鎖です。分母を最高次係数で正規化し、状態からの帰還と出力の重みを構成します。",
-      d,
+      arrangeIntegrator(d) ?? d,
     );
   } else
     limitations.push(

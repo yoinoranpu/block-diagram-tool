@@ -426,3 +426,33 @@ test("線の右クリックとタップ選択から途中に要素を追加し�
     .click();
   await expect(page.locator(".result-status")).toBeVisible();
 });
+
+test("上部を詰め、広告枠は線図より下に予約する", async ({ page }) => {
+  const canvas = await page.locator(".diagram-canvas").boundingBox();
+  expect(canvas!.y).toBeLessThan(500);
+  const ad = await page
+    .getByRole("complementary", { name: "広告掲載予定スペース" })
+    .boundingBox();
+  expect(ad!.y).toBeGreaterThanOrEqual(canvas!.y + canvas!.height);
+});
+
+test("積分器線図を編集・整列しても出力は右側に残る", async ({ page }, info) => {
+  await page.getByRole("button", { name: "02 伝達関数から線図" }).click();
+  await page.getByLabel("伝達関数の分子", { exact: true }).fill("K");
+  await page.getByLabel("伝達関数の分母", { exact: true }).fill("(s+a)*(s+b)");
+  await page.getByRole("button", { name: "等価な線図を生成する" }).click();
+  await page
+    .getByRole("button", { name: "積分器による構成", exact: true })
+    .click();
+  await page.getByRole("button", { name: "この線図を編集する →" }).click();
+  await page.getByRole("button", { name: "線図を整える", exact: true }).click();
+  const output = page.getByRole("button", { name: "出力 出力", exact: true });
+  const states = page.getByRole("button", { name: "伝達関数 I1", exact: true });
+  expect((await output.boundingBox())!.x).toBeGreaterThan(
+    (await states.boundingBox())!.x,
+  );
+  await expect(page.locator(".canvas-warning")).toHaveCount(0);
+  await page
+    .locator(".canvas-shell")
+    .screenshot({ path: info.outputPath("integrator-arranged.png") });
+});
