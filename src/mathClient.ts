@@ -14,7 +14,11 @@ export async function calculate<T>(kind: string, data: object): Promise<T> {
     worker.onmessage = (e) => {
       clearTimeout(timer);
       worker.terminate();
-      e.data.error ? reject(new Error(e.data.error)) : resolve(e.data.value);
+      e.data.error
+        ? reject(
+            Object.assign(new Error(e.data.error), { nodeId: e.data.nodeId }),
+          )
+        : resolve(e.data.value);
     };
     worker.onerror = () => {
       clearTimeout(timer);

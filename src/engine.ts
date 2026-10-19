@@ -219,9 +219,32 @@ export function solve(diagram: Diagram): Analysis {
       "入力から到達できない要素があります。未使用の要素を削除するか接続してください。",
     );
   const nodes = d.nodes.filter((n) => n.kind !== "input");
-  const gains = nodes.map((n) =>
-    n.kind === "block" ? transfer(n.num, n.den) : ONE,
-  );
+  const gains = nodes.map((n) => {
+    if (n.kind !== "block") return ONE;
+    for (const [field, label] of [
+      ["num", "分子"],
+      ["den", "分母"],
+    ] as const) {
+      try {
+        parse(n[field]);
+      } catch (error) {
+        throw Object.assign(
+          new MathError(
+            `「${n.label}」の${label}：${n[field].trim() ? (error as Error).message : `未入力です。${field === "den" ? "定数ゲインなら分母に 1 を入力してください。" : "分子を入力してください。"}`}`,
+          ),
+          { nodeId: n.id },
+        );
+      }
+    }
+    try {
+      return transfer(n.num, n.den);
+    } catch (error) {
+      throw Object.assign(
+        new MathError(`「${n.label}」：${(error as Error).message}`),
+        { nodeId: n.id },
+      );
+    }
+  });
   const conditions = new Set<string>(gains.flatMap((g) => g.conditions ?? []));
   for (const n of d.nodes.filter((n) => n.kind === "block")) {
     const numerator = parse(n.num),
@@ -290,20 +313,32 @@ export type Candidate = {
   result: Analysis;
 };
 function chain(blocks: Fraction[]): Diagram {
+  const folded = blocks.length > 4;
   const nodes = [
-    node("input", "u", 60, 220),
-    ...blocks.map((g, i) =>
-      node(
+    node("input", "u", 60, folded ? 170 : 220),
+    ...blocks.map((g, i) => {
+      const second = i >= 4;
+      const x = folded
+        ? second
+          ? 760 - (i - 4) * 180
+          : 220 + i * 180
+        : blocks.length === 1
+          ? 500
+          : 220 + (i * 560) / (blocks.length - 1);
+      const n = node(
         "block",
         `g${i}`,
-        160 + ((i + 1) * 660) / (blocks.length + 1),
-        220,
+        x,
+        folded ? (second ? 430 : 170) : 220,
         g.n,
         g.d,
-      ),
-    ),
-    node("output", "y", 920, 220),
+      );
+      if (second) n.reversed = true;
+      return n;
+    }),
+    node("output", "y", folded ? 60 : 950, folded ? 430 : 220),
   ];
+  if (folded) nodes.at(-1)!.reversed = true;
   return {
     nodes,
     edges: nodes.slice(1).map((n, i) => edge(nodes[i].id, n.id)),
@@ -339,18 +374,28 @@ export function generate(
   const accept = (title: string, explanation: string, diagram: Diagram) => {
     try {
       const result = solve(diagram);
-      result.conditions = [...new Set([...(original.conditions ?? []), ...result.conditions])];
-      if (!equal(original, result.value)) throw new MathError('生成線図の再計算が一致しませんでした。');
+      result.conditions = [
+        ...new Set([...(original.conditions ?? []), ...result.conditions]),
+      ];
+      if (!equal(original, result.value))
+        throw new MathError("生成線図の再計算が一致しませんでした。");
       candidates.push({ title, explanation, diagram, result });
     } catch (err) {
-      if (title === '単一ブロック') throw err;
-      limitations.push(`${title}：${err instanceof Error ? err.message : '再計算できませんでした。'} この構成は表示していません。`);
+      if (title === "単一ブロック") throw err;
+      limitations.push(
+        `${title}：${err instanceof Error ? err.message : "再計算できませんでした。"} この構成は表示していません。`,
+      );
     }
   };
   const single = chain([original]);
   // Preserve the user's compact input; expanding it can exceed the editor's 300-character limit.
-  single.nodes[1].num = num; single.nodes[1].den = den;
-  accept('単一ブロック', '入力した伝達関数をそのまま1つのブロックにします。', single);
+  single.nodes[1].num = num;
+  single.nodes[1].den = den;
+  accept(
+    "単一ブロック",
+    "入力した伝達関数をそのまま1つのブロックにします。",
+    single,
+  );
   const ns = coefficients(original.n),
     ds = coefficients(original.d);
   const gain = div(fraction(ns.at(-1)!), fraction(ds.at(-1)!));
@@ -365,7 +410,8 @@ export function generate(
       "ゲイン分離：最高次係数の比が1、または零伝達関数のため省略しました。",
     );
   try {
-    if (original.n.length + original.d.length > 400) throw new MathError('式が因数分解の初版上限を超えています。');
+    if (original.n.length + original.d.length > 400)
+      throw new MathError("式が因数分解の初版上限を超えています。");
     const factors: Fraction[] = [];
     for (const [poly, invert] of [
       [original.n, false],
@@ -420,35 +466,40 @@ export function generate(
     const direct = b[order];
     const d: Diagram = {
       nodes: [
-        node("input", "u", 45, 180),
-        node("sum", "q", 210, 180),
-        node("sum", "z", 790, 430),
-        node("output", "y", 940, 430),
+        node("input", "u", 65, 280),
+        node("sum", "q", 200, 280),
+        node("sum", "z", 870, 510),
+        node("output", "y", 970, 510),
       ],
       edges: [edge("u", "q"), edge("z", "y")],
     };
     for (let i = 1; i <= order; i++) {
-      d.nodes.push(node("block", `i${i}`, 260 + i * 135, 180, "1", "s"));
+      d.nodes.push(node("block", `i${i}`, 250 + i * 175, 280, "1", "s"));
       d.edges.push(edge(i === 1 ? "q" : `i${i - 1}`, `i${i}`));
       const feedback = a[order - i];
       if (feedback.n !== "0") {
         d.nodes.push(
-          node("block", `a${i}`, 260 + i * 135, 55, feedback.n, feedback.d),
+          node("block", `a${i}`, 250 + i * 175, 85, feedback.n, feedback.d),
         );
         d.edges.push(edge(`i${i}`, `a${i}`), edge(`a${i}`, "q", -1));
       }
       const outGain = sub(b[order - i], mul(direct, a[order - i]));
       if (outGain.n !== "0") {
         d.nodes.push(
-          node("block", `b${i}`, 260 + i * 135, 430, outGain.n, outGain.d),
+          node("block", `b${i}`, 200 + i * 175, 510, outGain.n, outGain.d),
         );
         d.edges.push(edge(`i${i}`, `b${i}`), edge(`b${i}`, "z"));
       }
     }
     if (direct.n !== "0") {
-      d.nodes.push(node("block", "direct", 200, 540, direct.n, direct.d));
+      d.nodes.push(node("block", "direct", 200, 560, direct.n, direct.d));
       d.edges.push(edge("u", "direct"), edge("direct", "z"));
     }
+    d.nodes
+      .filter((n) => /^a[0-9]+$/.test(n.id))
+      .forEach((n) => {
+        n.reversed = true;
+      });
     accept(
       "積分器による構成",
       "可制御正準形の積分器連鎖です。分母を最高次係数で正規化し、状態からの帰還と出力の重みを構成します。",

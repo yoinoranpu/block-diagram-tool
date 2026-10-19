@@ -109,6 +109,8 @@ function FractionInput({
           <input
             ref={nref}
             aria-label={`${prefix}の分子`}
+            aria-invalid={!num.trim()}
+            placeholder="例：K、2、s+1"
             value={num}
             maxLength={300}
             onFocus={() => setActive("n")}
@@ -124,6 +126,8 @@ function FractionInput({
           <input
             ref={dref}
             aria-label={`${prefix}の分母`}
+            aria-invalid={!den.trim()}
+            placeholder="定数ゲインなら 1"
             value={den}
             maxLength={300}
             onFocus={() => setActive("d")}
@@ -134,46 +138,69 @@ function FractionInput({
           />
         </label>
       </div>
-      <div className="keypad" aria-label="式入力の補助キー">
-        {[
-          "7",
-          "8",
-          "9",
-          "+",
-          "s",
-          "K",
-          "4",
-          "5",
-          "6",
-          "−",
-          "a",
-          "b",
-          "1",
-          "2",
-          "3",
-          "×",
-          "(",
-          ")",
-          "0",
-          ".",
-          "^",
-          "/",
-          "⌫",
-          "C",
-        ].map((t) => (
-          <button
-            key={t}
-            aria-label={
-              t === "⌫" ? "1文字削除" : t === "C" ? "入力欄をクリア" : undefined
-            }
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => insert(t === "−" ? "-" : t === "×" ? "*" : t)}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <details
+        className={`keypad-details ${prefix === "選択ブロック" ? "compact" : "expanded"}`}
+        open={prefix === "選択ブロック" ? undefined : true}
+      >
+        <summary>入力補助キーを開く</summary>
+        <div className="keypad" aria-label="式入力の補助キー">
+          {[
+            "7",
+            "8",
+            "9",
+            "+",
+            "s",
+            "K",
+            "4",
+            "5",
+            "6",
+            "−",
+            "a",
+            "b",
+            "1",
+            "2",
+            "3",
+            "×",
+            "(",
+            ")",
+            "0",
+            ".",
+            "^",
+            "/",
+            "⌫",
+            "C",
+          ].map((t) => (
+            <button
+              key={t}
+              aria-label={
+                t === "⌫"
+                  ? "1文字削除"
+                  : t === "C"
+                    ? "入力欄をクリア"
+                    : undefined
+              }
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insert(t === "−" ? "-" : t === "×" ? "*" : t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </details>
+      {(!num.trim() || !den.trim()) && (
+        <p className="inline-validation" role="status">
+          {!num.trim() ? "分子が未入力です。" : ""}
+          {!den.trim()
+            ? "分母が未入力です。定数ゲインなら 1 を入力してください。"
+            : ""}
+        </p>
+      )}
+      {!den.trim() && (
+        <button className="fill-denominator" onClick={() => onChange(num, "1")}>
+          分母を1にする
+        </button>
+      )}
       <p className="field-hint">
         掛け算は *、累乗は ^（例：s^3+a*s+1）。係数は半角英字1文字。i・e・E
         は使用できません。
@@ -213,6 +240,10 @@ export default function App() {
   const file = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLElement>(null);
   const requestId = useRef(0);
+  const [inputIssue, setInputIssue] = useState<{
+    nodeId: string;
+    message: string;
+  }>();
   const diagramKey = JSON.stringify(diagram),
     formulaKey = JSON.stringify([num, den]);
   const comparisonKey = JSON.stringify([
@@ -259,6 +290,7 @@ export default function App() {
     setHistory((h) => [...h.slice(0, cursor + 1), d].slice(-60));
     setCursor(Math.min(cursor + 1, 59));
     setError("");
+    setInputIssue(undefined);
   }
   function updateNode(patch: Partial<typeof n>) {
     if (n)
@@ -302,6 +334,8 @@ export default function App() {
     setBusy(true);
     setError("");
     setComparison(undefined);
+    setInputIssue(undefined);
+    setWire(undefined);
     try {
       if (tab === "diagram") {
         const data = await calculate<Analysis>("solve", { diagram });
@@ -318,7 +352,14 @@ export default function App() {
         block: "nearest",
       });
     } catch (err) {
-      if (id === requestId.current) setError((err as Error).message);
+      if (id === requestId.current) {
+        setError((err as Error).message);
+        const nodeId = (err as Error & { nodeId?: string }).nodeId;
+        if (nodeId) {
+          select(nodeId);
+          setInputIssue({ nodeId, message: (err as Error).message });
+        }
+      }
     } finally {
       if (id === requestId.current) setBusy(false);
     }
@@ -519,7 +560,7 @@ export default function App() {
                           {
                             {
                               block: "▭",
-                              sum: "⊕",
+                              sum: "○",
                               branch: "●",
                               input: "→",
                               output: "↗",
@@ -560,8 +601,8 @@ export default function App() {
                 <div className={`canvas-guide ${wire ? "wiring" : ""}`}>
                   <span>
                     {wire
-                      ? "● 接続先の左側の青い接続口を選んでください。合流は加算点へ。"
-                      : "右の接続口 → 左の接続口で配線。要素をドラッグで移動。線図は横スクロールできます。"}
+                      ? "● 接続先の白い入力口を選んでください。合流は白丸の加算点へ。"
+                      : "青い出力口 → 白い入力口で配線。要素を選ぶと、画面内の編集欄で式を入力できます。"}
                   </span>
                   {wire && (
                     <button onClick={() => setWire(undefined)}>
@@ -584,11 +625,31 @@ export default function App() {
                   </span>
                   <span>{saveStatus}</span>
                 </div>
-                <div className="inspector">
+                <div
+                  className={`inspector ${n || e ? "active" : ""}`}
+                  role={n || e ? "region" : undefined}
+                  aria-label={n || e ? "選択した要素の編集" : undefined}
+                >
+                  {(n || e) && (
+                    <button
+                      className="close-inspector"
+                      aria-label="編集欄を閉じる"
+                      onClick={() => select("")}
+                    >
+                      閉じる ×
+                    </button>
+                  )}
+                  {inputIssue?.nodeId === selected && (
+                    <p className="input-issue" role="alert">
+                      {inputIssue.message}
+                    </p>
+                  )}
                   {n ? (
                     <>
                       <div className="inspector-title">
-                        <strong>{labels[n.kind]}の編集</strong>
+                        <strong>
+                          {n.label} · {labels[n.kind]}の編集
+                        </strong>
                         <div>
                           <button
                             onClick={() => {
@@ -634,6 +695,14 @@ export default function App() {
                           den={n.den}
                           onChange={(num, den) => updateNode({ num, den })}
                         />
+                      )}
+                      {n.kind === "block" && (
+                        <button
+                          className="reverse-button"
+                          onClick={() => updateNode({ reversed: !n.reversed })}
+                        >
+                          入出力の向き：{n.reversed ? "←" : "→"}（反転）
+                        </button>
                       )}
                       <div className="move-tools">
                         <span>位置を調整</span>
@@ -811,6 +880,7 @@ export default function App() {
                       <>
                         <p className="verified">✓ 線図からの再計算で厳密一致</p>
                         <Canvas
+                          key={candidate.title}
                           diagram={candidate.diagram}
                           select={() => {}}
                           change={() => {}}
@@ -819,7 +889,7 @@ export default function App() {
                         />
                         <p className="explanation">
                           {candidate.explanation}{" "}
-                          小さい画面では線図を横にスクロールできます。
+                          「全体表示」で全体を確認し、拡大すると配線や式を詳しく見られます。
                         </p>
                         <button
                           className="secondary"
