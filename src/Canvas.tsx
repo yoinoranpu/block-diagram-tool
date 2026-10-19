@@ -6,6 +6,7 @@ import {
   inputSide,
   outputSide,
 } from "./routing";
+import { inspectWiring, traceSignal, snap, arrangeDiagram } from "./graphTools";
 import { downloadDiagram } from "./exportDiagram";
 import type { Diagram, DiagramNode } from "./model";
 export const labels = {
@@ -42,6 +43,14 @@ export function Canvas({
     pointerId: number;
     moved: boolean;
   } | null>(null);
+  const movingRef = useRef<DiagramNode | undefined>(undefined);
+  const [snapping, setSnapping] = useState(true);
+  const [fitVersion, setFitVersion] = useState(0);
+  const checks = useMemo(() => inspectWiring(diagram), [diagram]);
+  const signal = useMemo(
+    () => traceSignal(diagram, selected),
+    [diagram, selected],
+  );
   const [moving, setMoving] = useState<DiagramNode>();
   const nodes = diagram.nodes.map((n) => (moving?.id === n.id ? moving : n));
   function point(e: React.PointerEvent) {
@@ -92,7 +101,7 @@ export function Canvas({
   }, []);
   useLayoutEffect(() => {
     fit();
-  }, [size.width, size.height, structure]);
+  }, [size.width, size.height, structure, fitVersion]);
   const height = (camera.width * size.height) / size.width;
   const zoom = Math.round((fitted().width / camera.width) * 100);
   function zoomBy(factor: number) {
@@ -193,6 +202,26 @@ export function Canvas({
   }
   return (
     <div className={`canvas-shell ${readonly ? "readonly" : ""}`}>
+      {!readonly && (
+        <details
+          className={`wiring-check ${checks.length ? "has-errors" : ""}`}
+        >
+          <summary>
+            配線チェック：
+            {checks.length
+              ? `${checks.length}件を確認してください`
+              : "未接続・二重接続なし"}
+          </summary>
+          {checks.map((issue, i) => (
+            <button
+              key={i}
+              onClick={() => issue.nodeId && select(issue.nodeId)}
+            >
+              {issue.message}
+            </button>
+          ))}
+        </details>
+      )}
       <div className="view-controls" aria-label="線図の表示と画像保存">
         <div>
           <button aria-label="縮小" onClick={() => zoomBy(1.25)}>
@@ -205,6 +234,26 @@ export function Canvas({
           <button onClick={fit}>全体表示</button>
         </div>
         <div>
+          {!readonly && (
+            <>
+              <button
+                onClick={() => {
+                  change(arrangeDiagram(diagram));
+                  setFitVersion((v) => v + 1);
+                }}
+              >
+                自動整列
+              </button>
+              <label className="snap-toggle">
+                <input
+                  type="checkbox"
+                  checked={snapping}
+                  onChange={(e) => setSnapping(e.target.checked)}
+                />
+                吸着
+              </label>
+            </>
+          )}
           <button
             disabled={exporting || !diagram.nodes.length}
             onClick={() => save("png")}
@@ -257,7 +306,7 @@ export function Canvas({
           onPointerUp={() => {
             pan.current = null;
           }}
-          className="diagram-canvas"
+          className={`diagram-canvas ${selected && signal.label ? "path-focus" : ""}`}
           role="img"
           aria-label="ブロック線図。各要素の右側の接続口から左側の接続口へクリックして配線します。"
           onClick={(e) => {
@@ -298,7 +347,7 @@ export function Canvas({
             return (
               <g
                 key={e.id}
-                className={`edge-group ${selected === e.id ? "highlighted" : ""}`}
+                className={`edge-group ${selected === e.id ? "highlighted" : ""} ${signal.edges.has(e.id) ? "on-path" : ""}`}
               >
                 <title>
                   {nodes.find((n) => n.id === e.from)?.label} → {b.label}
@@ -367,7 +416,9 @@ export function Canvas({
           })}
           {nodes
             .filter(
-              (n) => diagram.edges.filter((e) => e.from === n.id).length > 1,
+              (n) =>
+                n.kind !== "branch" &&
+                diagram.edges.filter((e) => e.from === n.id).length > 1,
             )
             .map((n) => {
               const p = portPoint(n, outputSide(n));
@@ -387,7 +438,7 @@ export function Canvas({
             <g
               key={n.id}
               transform={`translate(${n.x},${n.y})`}
-              className={`diagram-node ${selected === n.id ? "selected" : ""} ${n.kind === "block" && (!n.num.trim() || !n.den.trim()) ? "invalid" : ""}`}
+              className={`diagram-node ${selected === n.id ? "selected" : ""} ${signal.nodes.has(n.id) ? "on-path" : ""} ${checks.some((c) => c.nodeId === n.id) ? "wiring-issue" : ""} ${n.kind === "block" && !n.num.trim() ? "invalid" : ""}`}
               role={readonly ? undefined : "button"}
               tabIndex={readonly ? undefined : 0}
               aria-label={`${labels[n.kind]} ${n.label}`}
@@ -421,33 +472,50 @@ export function Canvas({
                   d = drag.current;
                 if (Math.abs(p.x - d.startX) + Math.abs(p.y - d.startY) > 4)
                   d.moved = true;
-                if (d.moved)
-                  setMoving({
+                if (d.moved) {
+                  const next = {
                     ...n,
-                    x: Math.round(
-                      Math.max(70, Math.min(930, d.x + p.x - d.startX)),
+                    x: Math.max(
+                      70,
+                      Math.min(
+                        930,
+                        snapping
+                          ? snap(d.x + p.x - d.startX)
+                          : Math.round(d.x + p.x - d.startX),
+                      ),
                     ),
-                    y: Math.round(
-                      Math.max(55, Math.min(565, d.y + p.y - d.startY)),
+                    y: Math.max(
+                      55,
+                      Math.min(
+                        565,
+                        snapping
+                          ? snap(d.y + p.y - d.startY)
+                          : Math.round(d.y + p.y - d.startY),
+                      ),
                     ),
-                  });
+                  };
+                  movingRef.current = next;
+                  setMoving(next);
+                }
               }}
               onPointerUp={(e) => {
                 if (drag.current?.id !== n.id) return;
-                if (moving && drag.current.moved)
+                if (movingRef.current && drag.current.moved)
                   change({
                     ...diagram,
                     nodes: diagram.nodes.map((v) =>
-                      v.id === n.id ? moving : v,
+                      v.id === n.id ? movingRef.current! : v,
                     ),
                   });
                 drag.current = null;
+                movingRef.current = undefined;
                 setMoving(undefined);
                 if (e.currentTarget.hasPointerCapture(e.pointerId))
                   e.currentTarget.releasePointerCapture(e.pointerId);
               }}
               onPointerCancel={() => {
                 drag.current = null;
+                movingRef.current = undefined;
                 setMoving(undefined);
               }}
             >
@@ -464,29 +532,63 @@ export function Canvas({
                   <text y="-17" textAnchor="middle" className="node-label">
                     {n.label}
                   </text>
-                  <text y="5" textAnchor="middle" className="node-expression">
+                  <text
+                    y={!n.den.trim() || n.den.trim() === "1" ? 14 : 5}
+                    textAnchor="middle"
+                    className={`node-expression ${!n.den.trim() || n.den.trim() === "1" ? "block-gain" : ""}`}
+                  >
                     {!n.num.trim()
                       ? "未入力"
                       : n.num.length > 15
                         ? n.num.slice(0, 14) + "…"
                         : n.num}
                   </text>
-                  <line x1="-45" y1="13" x2="45" y2="13" stroke="#94a3b8" />
-                  <text y="31" textAnchor="middle" className="node-expression">
-                    {!n.den.trim()
-                      ? "未入力"
-                      : n.den.length > 15
-                        ? n.den.slice(0, 14) + "…"
-                        : n.den}
-                  </text>
+                  {n.den.trim() && n.den.trim() !== "1" && (
+                    <>
+                      <line
+                        className="fraction-bar"
+                        x1="-45"
+                        y1="13"
+                        x2="45"
+                        y2="13"
+                        stroke="#94a3b8"
+                      />
+                      <text
+                        y="31"
+                        textAnchor="middle"
+                        className="node-expression"
+                      >
+                        {!n.den.trim()
+                          ? "未入力"
+                          : n.den.length > 15
+                            ? n.den.slice(0, 14) + "…"
+                            : n.den}
+                      </text>
+                    </>
+                  )}
                   <title>
-                    {n.label}: ({n.num}) / ({n.den})
+                    {n.label}: ({n.num}) / ({n.den.trim() || "1"})
                   </title>
                 </>
               ) : n.kind === "sum" ? (
                 <circle className="node-body sum-body" r="23" />
               ) : n.kind === "branch" ? (
-                <circle className="branch-body" r="8" />
+                <>
+                  <line
+                    x1={n.reversed ? 34 : -34}
+                    x2="0"
+                    stroke="#64748b"
+                    strokeWidth="1.8"
+                  />
+                  <line
+                    className="export-hide"
+                    x1="0"
+                    x2={n.reversed ? -34 : 34}
+                    stroke="#abc3e1"
+                    strokeDasharray="3 3"
+                  />
+                  <circle className="branch-body" r="8" />
+                </>
               ) : (
                 <>
                   <rect
@@ -525,7 +627,7 @@ export function Canvas({
                 >
                   <circle
                     cx={portPoint(n, inputSide(n)).x - n.x}
-                    r="19"
+                    r={n.kind === "branch" ? 14 : 19}
                     fill="transparent"
                   />
                   <circle
@@ -555,7 +657,7 @@ export function Canvas({
                 >
                   <circle
                     cx={portPoint(n, outputSide(n)).x - n.x}
-                    r="19"
+                    r={n.kind === "branch" ? 14 : 19}
                     fill="transparent"
                   />
                   <circle
@@ -565,10 +667,24 @@ export function Canvas({
                   />
                 </g>
               )}
+              {!readonly && n.kind === "branch" && (
+                <circle
+                  className="branch-drag-handle export-hide"
+                  r="18"
+                  fill="transparent"
+                >
+                  <title>中央をドラッグして分岐点を移動</title>
+                </circle>
+              )}
             </g>
           ))}
         </svg>
       </div>
+      {signal.label && (
+        <div className="signal-trace" role="status">
+          経路：{signal.label}（青線）。淡色の線は選択経路の外です。
+        </div>
+      )}
       <div className="view-hint">
         空白部分をドラッグして移動 · 2本指で拡大・縮小 ·
         「全体表示」で元に戻せます

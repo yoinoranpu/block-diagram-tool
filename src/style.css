@@ -1334,3 +1334,100 @@ input[aria-invalid="true"] {
   stroke: #c95c70;
   fill: #fff9fa;
 }
+.gain-hint {
+  font-size: 10px;
+  color: #6682a1;
+  margin: 7px 0;
+}
+.wiring-check {
+  background: #f7fbff;
+  color: #5a789a;
+  padding: 7px 12px;
+  font-size: 11px;
+  border-top: 1px solid #e8eef6;
+}
+.wiring-check summary {
+  cursor: pointer;
+}
+.wiring-check.has-errors {
+  background: #fff7ed;
+  color: #a46427;
+}
+.wiring-check button {
+  display: block;
+  border: 0;
+  text-align: left;
+  width: 100%;
+  background: transparent;
+  font-size: 11px;
+  min-height: 30px;
+  padding: 4px;
+}
+.diagram-node.wiring-issue .node-body,
+.diagram-node.wiring-issue .terminal-body {
+  stroke: #cf883f;
+  stroke-dasharray: 4 3;
+}
+.snap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #6e8097;
+  white-space: nowrap;
+}
+.snap-toggle input {
+  width: 14px;
+  height: 14px;
+  min-width: 0;
+  accent-color: #2867d9;
+}
+.branch-drag-handle {
+  cursor: grab;
+  pointer-events: all;
+}
+.diagram-canvas.path-focus .edge-group:not(.on-path) {
+  opacity: 0.25;
+}
+.diagram-canvas.path-focus .diagram-node:not(.on-path) {
+  opacity: 0.45;
+}
+.edge-group.on-path .wire {
+  stroke: #2867d9;
+  stroke-width: 2.5;
+}
+.signal-trace {
+  font-size: 10px;
+  color: #3567a5;
+  background: #eef5ff;
+  padding: 7px 12px;
+}
+.learning-section {
+  padding: 16px 20px;
+  border-top: 1px solid #e9eef5;
+}
+.learning-section > h3 {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.learning-step {
+  border: 1px solid #e0e8f2;
+  border-radius: 7px;
+  margin: 9px 0;
+  padding: 9px 10px;
+}
+.learning-step > summary {
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #496f9b;
+}
+.learning-step > p {
+  font-size: 11px;
+  color: #74849b;
+  line-height: 1.9;
+  margin-top: 10px;
+}
+.learning-step .canvas-scroll {
+  height: 240px !important;
+}

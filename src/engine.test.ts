@@ -138,15 +138,33 @@ it("展開で300文字を超える式も単一ブロックとして生成する"
   expect(result.limitations.length).toBeGreaterThan(0);
 });
 
-it("分母の未入力はブロック名と修正方法を示し、対象IDを返す", () => {
+it("空白の分母は1として計算し、明示的な分母0は拒否する", () => {
   const d = example("series");
-  d.nodes.find((n) => n.id === "g")!.den = "";
+  const g = d.nodes.find((n) => n.id === "g")!;
+  g.num = "2";
+  g.den = "  ";
+  expect(equal(solve(d).value, parse("2/(s+b)"))).toBe(true);
+  expect(equal(transfer("K", ""), parse("K"))).toBe(true);
+  g.den = "0";
+  expect(() => solve(d)).toThrow("「G」");
+  g.den = "1";
+  g.num = "";
   try {
     solve(d);
     throw new Error("expected failure");
   } catch (error) {
-    expect((error as Error).message).toContain("「G」の分母");
-    expect((error as Error).message).toContain("分母に 1");
+    expect((error as Error).message).toContain("分子");
     expect((error as Error & { nodeId: string }).nodeId).toBe("g");
   }
 });
+
+it.each(["series", "parallel", "negative", "positive"] as const)(
+  "%s の基本公式による各段階が元の線図と厳密に等価",
+  (kind) => {
+    const result = solve(example(kind));
+    expect(result.learning.length).toBeGreaterThan(0);
+    for (const step of result.learning)
+      expect(equal(solve(step.diagram, false).value, result.value)).toBe(true);
+    expect(result.learning.at(-1)!.diagram.nodes).toHaveLength(3);
+  },
+);

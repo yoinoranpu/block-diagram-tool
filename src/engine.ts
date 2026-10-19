@@ -1,3 +1,4 @@
+import { buildLearning, type LearningStep } from "./learning";
 import nerdamer from "nerdamer/all.js";
 import {
   polynomial,
@@ -174,7 +175,7 @@ export function parse(input: string): Fraction {
   return result;
 }
 export function transfer(num: string, den: string): Fraction {
-  return div(parse(num), parse(den));
+  return div(parse(num), parse(den.trim() || "1"));
 }
 
 export type Analysis = {
@@ -185,8 +186,10 @@ export type Analysis = {
   derivation: string[];
   conditions: string[];
   notes: string[];
+  learning: LearningStep[];
+  learningNote: string;
 };
-export function solve(diagram: Diagram): Analysis {
+export function solve(diagram: Diagram, includeLearning = true): Analysis {
   const d = validateDiagram(diagram);
   const inputs = d.nodes.filter((n) => n.kind === "input");
   const outputs = d.nodes.filter((n) => n.kind === "output");
@@ -226,7 +229,7 @@ export function solve(diagram: Diagram): Analysis {
       ["den", "分母"],
     ] as const) {
       try {
-        parse(n[field]);
+        parse(field === "den" ? n[field].trim() || "1" : n[field]);
       } catch (error) {
         throw Object.assign(
           new MathError(
@@ -248,7 +251,7 @@ export function solve(diagram: Diagram): Analysis {
   const conditions = new Set<string>(gains.flatMap((g) => g.conditions ?? []));
   for (const n of d.nodes.filter((n) => n.kind === "block")) {
     const numerator = parse(n.num),
-      denominator = parse(n.den);
+      denominator = parse(n.den.trim() || "1");
     for (const expression of [numerator.d, denominator.d, denominator.n])
       if (/[A-Za-z]/.test(expression)) conditions.add(`${expression} ≢ 0`);
   }
@@ -292,6 +295,23 @@ export function solve(diagram: Diagram): Analysis {
     `Y/U = D_Y/D = ${text(result)}`,
   ];
   return {
+    ...(() => {
+      try {
+        return includeLearning
+          ? buildLearning(d, result)
+          : {
+              learning: [],
+              learningNote:
+                "基本公式の計算過程は、線図の計算ボタンで確認できます。",
+            };
+      } catch {
+        return {
+          learning: [],
+          learningNote:
+            "基本公式で整理できないため、連立方程式による計算結果と導出を示します。",
+        };
+      }
+    })(),
     value: result,
     tex: latex(result),
     expression: text(result),
@@ -373,7 +393,7 @@ export function generate(
     limitations: string[] = [];
   const accept = (title: string, explanation: string, diagram: Diagram) => {
     try {
-      const result = solve(diagram);
+      const result = solve(diagram, false);
       result.conditions = [
         ...new Set([...(original.conditions ?? []), ...result.conditions]),
       ];
