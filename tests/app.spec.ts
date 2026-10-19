@@ -46,10 +46,12 @@ test("ブロックの編集、移動、複製、削除、元に戻す、やり�
     .first()
     .click();
   await page.getByLabel("選択ブロックの分子").fill("a");
+  await page.getByRole("button", { name: "ブロック操作" }).click();
   await page.getByRole("button", { name: "詳細設定", exact: true }).click();
   await page.getByRole("button", { name: "要素を→へ移動" }).click();
   await page.getByRole("button", { name: "複製", exact: true }).click();
   await expect(page.locator(".diagram-node")).toHaveCount(5);
+  await page.getByRole("button", { name: "ブロック操作" }).click();
   await page.getByRole("button", { name: "削除", exact: true }).click();
   await expect(page.locator(".diagram-node")).toHaveCount(4);
   await page.getByRole("button", { name: "元に戻す", exact: true }).click();
@@ -93,6 +95,7 @@ test("接続口を順番に押して配線、符号を変更", async ({ page }) 
 });
 test("JSONの書き出し・読み込みと不正データの拒否", async ({ page }) => {
   const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "保存・読込" }).click();
   await page.getByRole("button", { name: "JSON保存" }).click();
   const path = await (await download).path();
   expect(path).toBeTruthy();
@@ -152,13 +155,17 @@ test("白丸の加算点、拡大縮小と全体表示、全体のPNG・SVG保�
   await expect(page.locator(".diagram-canvas")).not.toContainText("Σ");
   const canvas = page.locator(".diagram-canvas");
   const before = await canvas.getAttribute("viewBox");
+  await page.getByRole("button", { name: "表示・配置" }).click();
   await page.getByRole("button", { name: "拡大", exact: true }).click();
   const zoomed = await canvas.getAttribute("viewBox");
   expect(zoomed).not.toBe(before);
+  await page.getByRole("button", { name: "表示・配置" }).click();
   await page.getByRole("button", { name: "縮小", exact: true }).click();
+  await page.getByRole("button", { name: "表示・配置" }).click();
   await page.getByRole("button", { name: "全体表示", exact: true }).click();
   expect(await canvas.getAttribute("viewBox")).toBe(before);
   for (const format of ["PNG", "SVG"]) {
+    await page.getByRole("button", { name: "保存・読込" }).click();
     const downloadPromise = page.waitForEvent("download");
     await page
       .getByRole("button", { name: `${format}保存`, exact: true })
@@ -221,6 +228,7 @@ test("2本指で線図だけを拡大し、全体表示で戻せる", async ({ p
       .locator(".diagram-node")
       .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("transform"))),
   ).toEqual(nodes);
+  await page.getByRole("button", { name: "表示・配置" }).click();
   await page.getByRole("button", { name: "全体表示", exact: true }).click();
   expect(await svg.getAttribute("viewBox")).toBe(before);
   await session.detach();
@@ -277,12 +285,16 @@ test("配線不足の表示、整列、経路の強調、基本公式の途中�
   await page.locator(".wiring-check summary").click();
   await page.locator(".wiring-check button").first().click();
   await expect(page.locator(".diagram-node.wiring-issue")).toHaveCount(1);
+  await page.getByRole("button", { name: "ブロック操作" }).click();
   await page.getByRole("button", { name: "削除", exact: true }).click();
   await expect(page.locator(".wiring-check summary")).toContainText(
     "未接続・二重接続なし",
   );
+  await page.getByRole("button", { name: "表示・配置" }).click();
   await page.getByRole("button", { name: "自動整列", exact: true }).click();
+  await page.getByRole("button", { name: "表示・配置" }).click();
   await expect(page.getByRole("checkbox", { name: "吸着" })).toBeChecked();
+  await page.getByRole("button", { name: "表示・配置" }).click();
   await page.getByRole("button", { name: "伝達関数 H", exact: true }).click();
   await expect(page.locator(".signal-trace")).toContainText("H を通る");
   await expect(page.locator(".edge-group.on-path").first()).toBeVisible();
@@ -328,4 +340,36 @@ test("線図上で全角式を直接編集し、Ctrl+Z・やり直し・図形�
   await expect(page.locator(".diagram-node")).toHaveCount(4);
   await page.getByRole("button", { name: "全体の伝達関数を求める" }).click();
   await expect(page.locator(".result-status")).toBeVisible();
+});
+
+test("右クリックと選択メニューから反転でき、Escapeと外側で閉じる", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "直列", exact: true }).click();
+  const block = page.getByRole("button", { name: "伝達関数 G", exact: true });
+  await block.click({ button: "right" });
+  await expect(
+    page.getByRole("button", { name: "左右反転", exact: true }),
+  ).toBeVisible();
+  const menu = page.locator(".action-menu-panel");
+  const bounds = await menu.boundingBox();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
+  );
+  await menu.screenshot({ path: test.info().outputPath("block-menu.png") });
+  await page.getByRole("button", { name: "左右反転", exact: true }).click();
+  await page.getByRole("button", { name: "ブロック操作" }).click();
+  await page.getByRole("button", { name: "詳細設定", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "入出力の向き：←（反転）" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "表示・配置" }).click();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "全体表示", exact: true }),
+  ).toBeHidden();
+  await page.getByRole("button", { name: "保存・読込" }).click();
+  await page.getByRole("heading", { name: "ブロック線図を作る" }).click();
+  await expect(page.getByRole("button", { name: "JSON保存" })).toBeHidden();
 });

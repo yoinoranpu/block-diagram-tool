@@ -1480,3 +1480,41 @@ input[aria-invalid="true"] {
 .inspector[hidden] {
   display: none;
 }
+
+.action-menu {
+  position: relative;
+  display: inline-block;
+}
+.action-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: 200px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  background: white;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #24334a22;
+}
+.action-menu-panel button {
+  text-align: left;
+  min-height: 40px;
+}
+.action-menu-panel .snap-toggle {
+  min-height: 40px;
+  padding: 8px;
+}
+.node-actions .action-menu-panel {
+  flex-direction: column;
+}
+.view-controls > .action-menu:first-child .action-menu-panel {
+  left: 0;
+  right: auto;
+}
