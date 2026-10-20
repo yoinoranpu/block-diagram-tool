@@ -137,3 +137,17 @@ it.each(["parallel", "negative", "positive"] as const)(
       }
   },
 );
+
+it("広い描画領域へ移しても配線形状が変わらず、全体表示範囲が追従する", () => {
+  const original = example("multi");
+  const shifted = {
+    ...original,
+    nodes: original.nodes.map((n) => ({ ...n, x: n.x + 4000, y: n.y + 2500 })),
+  };
+  const before = routeEdges(original), after = routeEdges(shifted);
+  expect(after.every((r) => !r.obstructed)).toBe(true);
+  expect(after.map((r) => r.points.map((p) => ({ x: p.x - 4000, y: p.y - 2500 }))))
+    .toEqual(before.map((r) => r.points));
+  const a = diagramBounds(original, before), b = diagramBounds(shifted, after);
+  expect(b).toEqual({ ...a, x: a.x + 4000, y: a.y + 2500 });
+});
