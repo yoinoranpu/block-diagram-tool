@@ -1,3 +1,4 @@
+import type { Diagram } from "./model";
 import { useEffect, useRef, useState } from "react";
 import { calculate } from "./mathClient";
 import { normalizeFormula } from "./normalizeInput";
@@ -28,7 +29,7 @@ function initial() {
     return structuredClone(example);
   }
 }
-export function StateSpaceWorkspace() {
+export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => void }) {
   const [data, setData] = useState<StateSpaceInput>(initial),
     [response, setResponse] = useState<{
       key: string;
@@ -360,7 +361,7 @@ export function StateSpaceWorkspace() {
       {result && (
         <section className="panel state-output state-output-wide">
           <h3>入力した行列の状態変数線図</h3>
-          <StateSpaceDiagram data={result.coefficients} />
+          <StateSpaceDiagram data={result.coefficients} onEdit={onEdit} />
           <details>
             <summary>計算過程・成立条件</summary>
             <p>G(s) = C(sI−A)⁻¹B + D</p>

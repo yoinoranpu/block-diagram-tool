@@ -1,0 +1,62 @@
+import { test, expect } from "@playwright/test";
+test.beforeEach(async ({ page }) => { await page.goto("/"); });
+test("状態空間の線図を編集画面へ移して計算・編集・元に戻す", async ({ page }) => {
+  await page.getByRole("button", { name: "03 状態空間表現から" }).click();
+  await page.getByRole("button", { name: "伝達関数と状態変数線図を求める" }).click();
+  await expect(page.locator(".state-connected-node")).toHaveCount(16);
+  await page.getByRole("button", { name: "この線図を編集する →", exact: true }).click();
+  await expect(page.getByRole("button", { name: "01 線図から伝達関数" })).toHaveClass("active");
+  await expect(page.locator(".diagram-node")).toHaveCount(16);
+  await page.getByRole("button", { name: "全体の伝達関数を求める", exact: true }).click();
+  await expect(page.locator(".result-status")).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await page.getByRole("button", { name: "状態空間表現を求める", exact: true }).click();
+  await expect(page.locator(".realization-result .verified")).toContainText("厳密一致");
+  await expect(page.locator(".realization-result h3")).toContainText("2状態");
+  await page.getByRole("button", { name: "伝達関数 B2", exact: true }).click();
+  await page.getByLabel("選択ブロックの分子").fill("2*K");
+  await expect(page.locator(".realization-result")).toHaveCount(0);
+  await page.getByRole("button", { name: "元に戻す", exact: true }).click();
+  await page.getByRole("button", { name: "全体の伝達関数を求める", exact: true }).click();
+  await expect(page.locator(".result-status")).toBeVisible();
+});
+test("伝達関数から行列を求め、8次・定数・非プロパーを区別する", async ({ page }, info) => {
+  test.setTimeout(60000);
+  await page.getByRole("button", { name: "02 伝達関数から線図" }).click();
+  await page.getByLabel("伝達関数の分子", { exact: true }).fill("K");
+  await page.getByLabel("伝達関数の分母", { exact: true }).fill("a*s^2+b*s+c");
+  await page.getByRole("button", { name: "等価な線図を生成する" }).click();
+  await page.getByRole("button", { name: "状態空間表現を求める", exact: true }).click();
+  await expect(page.locator(".realization-result h3")).toContainText("2状態");
+  await expect(page.locator(".realization-matrix")).toHaveCount(4);
+  await expect(page.locator(".realization-result .katex-error")).toHaveCount(0);
+  await page.locator(".realization-result").screenshot({ path: info.outputPath("state-realization.png") });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  for (const [num, den, title] of [["1", "s^8+2*s+3", "8状態"], ["3", "1", "状態なし"]]) {
+    await page.getByLabel("伝達関数の分子", { exact: true }).fill(num);
+    await page.getByLabel("伝達関数の分母", { exact: true }).fill(den);
+    await expect(page.locator(".realization-result")).toHaveCount(0);
+    await page.getByRole("button", { name: "等価な線図を生成する" }).click();
+    await page.getByRole("button", { name: "状態空間表現を求める", exact: true }).click();
+    await expect(page.locator(".realization-result h3")).toContainText(title);
+    await expect(page.locator(".realization-result .verified")).toContainText("厳密一致");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await page.getByLabel("伝達関数の分子", { exact: true }).fill("s^2+1");
+  await page.getByLabel("伝達関数の分母", { exact: true }).fill("s+1");
+  await page.getByRole("button", { name: "等価な線図を生成する" }).click();
+  await page.getByRole("button", { name: "状態空間表現を求める", exact: true }).click();
+  await expect(page.locator(".realization-section [role=alert]")).toContainText("非プロパー");
+  await expect(page.locator(".realization-result")).toHaveCount(0);
+});
+test("3状態の全25ブロックを省略せず編集できる", async ({ page }) => {
+  await page.getByRole("button", { name: "03 状態空間表現から" }).click();
+  await page.getByRole("button", { name: "3次の例題", exact: true }).click();
+  await page.getByRole("button", { name: "伝達関数と状態変数線図を求める" }).click();
+  await expect(page.locator(".state-connected-node")).toHaveCount(25);
+  await page.getByRole("button", { name: "この線図を編集する →", exact: true }).click();
+  await expect(page.locator(".diagram-node")).toHaveCount(25);
+  await page.getByRole("button", { name: "全体の伝達関数を求める", exact: true }).click();
+  await expect(page.locator(".result-status")).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});

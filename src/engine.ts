@@ -450,7 +450,7 @@ function chain(blocks: Fraction[]): Diagram {
     edges: nodes.slice(1).map((n, i) => edge(nodes[i].id, n.id)),
   };
 }
-function coefficients(p: string): string[] {
+export function coefficients(p: string): string[] {
   const terms = polynomial(p);
   const result: P[] = [];
   for (const [key, value] of terms) {

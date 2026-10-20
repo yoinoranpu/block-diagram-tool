@@ -19,13 +19,14 @@ export type StateSpaceResult = {
 export function validateStateSpace(
   value: unknown,
   allowIncomplete = false,
+  maxStates = 3,
 ): StateSpaceInput {
   const v = value as StateSpaceInput;
   const n = v?.A?.length;
   if (
     !Array.isArray(v?.A) ||
     n < 1 ||
-    n > 3 ||
+    n > maxStates ||
     !v.A.every((row) => Array.isArray(row) && row.length === n) ||
     !Array.isArray(v.B) ||
     !Array.isArray(v.C) ||
@@ -33,7 +34,7 @@ export function validateStateSpace(
     v.C.length !== n
   )
     throw new Error(
-      "Aは1〜3次の正方行列、Bは同じ行数の列ベクトル、Cは同じ列数の行ベクトルにしてください（1入力1出力）。",
+      `Aは1〜${maxStates}次の正方行列、Bは同じ行数の列ベクトル、Cは同じ列数の行ベクトルにしてください（1入力1出力）。`,
     );
   if (
     ![...v.A.flat(), ...v.B, ...v.C, v.D].every(

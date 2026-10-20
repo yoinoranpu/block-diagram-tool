@@ -243,7 +243,7 @@ export function insertOnEdge(
   position?: { x: number; y: number },
 ): Diagram {
   const edge = d.edges.find((e) => e.id === edgeId);
-  if (!edge || d.nodes.length >= 16 || d.edges.length >= 32) return d;
+  if (!edge || d.nodes.length >= 32 || d.edges.length >= 64) return d;
   const from = d.nodes.find((n) => n.id === edge.from)!,
     to = d.nodes.find((n) => n.id === edge.to)!;
   const node = {

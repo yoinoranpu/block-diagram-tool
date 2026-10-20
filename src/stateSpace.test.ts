@@ -98,3 +98,12 @@ it("密な3次行列を独立したSymPy計算の結果と照合する", () => {
     equal(r.value, transfer("(s+2)*(s^2+4*s+15)", "2*(s^3-2*s^2-3*s-6)")),
   ).toBe(true);
 });
+
+it("行列式の消去用ピボットを係数の成立条件として追加しない", () => {
+  const data = { A: [["-1", "0", "0"], ["0", "-2", "0"], ["0", "0", "-3"]],
+    B: ["K", "0", "0"], C: ["1", "0", "0"], D: "0" };
+  const r = stateSpace(data);
+  expect(equal(r.value, transfer("K", "s+1"))).toBe(true);
+  expect(r.conditions.some((v) => v.includes("K"))).toBe(false);
+  expect(equal(stateSpace({ ...data, B: ["0", "0", "0"] }).value, transfer("0", "1"))).toBe(true);
+});

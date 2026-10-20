@@ -19,10 +19,10 @@ export function validateDiagram(value: unknown): Diagram {
   if (
     !Array.isArray(d.nodes) ||
     !Array.isArray(d.edges) ||
-    d.nodes.length > 16 ||
-    d.edges.length > 32
+    d.nodes.length > 32 ||
+    d.edges.length > 64
   )
-    throw new MathError("線図は16要素・32配線までです。");
+    throw new MathError("線図は32要素・64配線までです。");
   const ids = new Set<string>();
   for (const n of d.nodes) {
     if (

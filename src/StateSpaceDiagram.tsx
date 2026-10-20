@@ -1,14 +1,25 @@
+import { calculate } from "./mathClient";
+import type { Diagram } from "./model";
 import { stateSignalLabel } from "./stateNotation";
 import { StateConnectedDiagram } from "./StateConnectedDiagram";
 import { useId, useRef, useState } from "react";
 import type { StateSpaceInput } from "./stateSpace";
 import type { StateDiagramOptions } from "./StateConnectedGraph";
 import { downloadDiagram } from "./exportDiagram";
-export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
+export function StateSpaceDiagram({ data, onEdit }: { data: StateSpaceInput; onEdit: (diagram: Diagram) => void }) {
   const [mode, setMode] = useState<"connected" | "labels">("connected");
   const [omitZero, setOmitZero] = useState(false);
   const [omitOne, setOmitOne] = useState(false);
   const options = { omitZero, omitOne };
+  const [editing, setEditing] = useState(false), [editError, setEditError] = useState("");
+  async function edit() {
+    setEditing(true); setEditError("");
+    try {
+      const diagram = await calculate<Diagram>("stateDiagram", { state: data, options });
+      onEdit(diagram);
+    } catch (e) { setEditError((e as Error).message); }
+    finally { setEditing(false); }
+  }
   return (
     <div>
       <div className="state-diagram-switch" aria-label="状態変数線図の表示方法">
@@ -40,6 +51,10 @@ export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
       ) : (
         <StateLabelDiagram data={data} options={options} />
       )}
+      <button className="secondary" disabled={editing} onClick={edit}>
+        {editing ? "編集用の線図を準備中…" : "この線図を編集する →"}
+      </button>
+      {editError && <p className="error" role="alert">{editError}</p>}
     </div>
   );
 }

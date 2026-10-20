@@ -16,19 +16,32 @@ import {
   type StateSpaceResult,
 } from "./stateSpaceModel";
 export type { StateSpaceInput, StateSpaceResult } from "./stateSpaceModel";
-function det(m: Fraction[][]): Fraction {
-  if (!m.length) return fraction("1");
-  if (m.length === 1) return m[0][0];
-  return m[0].reduce((sum, x, j) => {
-    const term = mul(
-      x,
-      det(m.slice(1).map((row) => row.filter((_, k) => k !== j))),
-    );
-    return j % 2 ? sub(sum, term) : add(sum, term);
-  }, fraction("0"));
+// Fraction-free elimination avoids factorial work for higher-order realizations.
+function det(matrix: Fraction[][]): Fraction {
+  if (!matrix.length) return fraction("1");
+  const m = matrix.map((row) => [...row]);
+  let previous = fraction("1"), sign = fraction("1");
+  for (let k = 0; k < m.length - 1; k++) {
+    const pivotRow = m.findIndex((row, i) => i >= k && row[k].n !== "0");
+    if (pivotRow < 0) return fraction("0");
+    if (pivotRow !== k) {
+      [m[k], m[pivotRow]] = [m[pivotRow], m[k]];
+      sign = mul(sign, fraction("-1"));
+    }
+    const pivot = m[k][k];
+    for (let i = k + 1; i < m.length; i++) {
+      for (let j = k + 1; j < m.length; j++)
+        m[i][j] = div(sub(mul(m[i][j], pivot), mul(m[i][k], m[k][j])), previous);
+      m[i][k] = fraction("0");
+    }
+    previous = pivot;
+  }
+  // Pivot denominators are an elimination device, not restrictions on the
+  // determinant. Input coefficient denominators are collected by entry().
+  return { ...mul(sign, m.at(-1)!.at(-1)!), conditions: [] };
 }
-export function stateSpace(input: StateSpaceInput): StateSpaceResult {
-  const data = validateStateSpace(input),
+export function stateSpace(input: StateSpaceInput, maxStates = 3): StateSpaceResult {
+  const data = validateStateSpace(input, false, maxStates),
     conditions = new Set<string>();
   const entry = (s: string, name: string) => {
     if (/s/.test(s))
