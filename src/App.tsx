@@ -1,3 +1,4 @@
+import { RealizationPanel } from "./RealizationPanel";
 import { StateSpaceWorkspace } from "./StateSpaceWorkspace";
 import { ActionMenu } from "./ActionMenu";
 import { normalizeFormula } from "./normalizeInput";
@@ -341,8 +342,8 @@ export default function App() {
     setWire(undefined);
   }
   function addNode(kind: Kind) {
-    if (diagram.nodes.length >= 16) {
-      setError("初版の上限は16要素です。");
+    if (diagram.nodes.length >= 32) {
+      setError("初版の上限は32要素です。");
       return;
     }
     const v = node(
@@ -385,8 +386,8 @@ export default function App() {
         setNotice(`${n.label} をコピーしました。Ctrl＋Vで貼り付けできます。`);
       } else if (key === "v" && copiedNode.current) {
         event.preventDefault();
-        if (diagram.nodes.length >= 16) {
-          setError("要素は16個までです。");
+        if (diagram.nodes.length >= 32) {
+          setError("要素は32個までです。");
           return;
         }
         const offset = 40 * ++pasteCount.current;
@@ -567,7 +568,14 @@ export default function App() {
           </div>
         )}
         {tab === "state" ? (
-          <StateSpaceWorkspace />
+          <StateSpaceWorkspace onEdit={(d) => {
+            change(d);
+            select("");
+            setWire(undefined);
+            setAnswer(undefined);
+            setError("");
+            setTab("diagram");
+          }} />
         ) : (
           <div className="workspace">
             <section className="input-panel panel">
@@ -717,7 +725,7 @@ export default function App() {
                   />
                   <div className="canvas-footer">
                     <span>
-                      {diagram.nodes.length}/16 要素 · {diagram.edges.length}/32
+                      {diagram.nodes.length}/32 要素 · {diagram.edges.length}/64
                       配線
                     </span>
                     <span>{saveStatus}</span>
@@ -751,8 +759,8 @@ export default function App() {
                           <div>
                             <button
                               onClick={() => {
-                                if (diagram.nodes.length >= 16) {
-                                  setError("要素は16個までです。");
+                                if (diagram.nodes.length >= 32) {
+                                  setError("要素は32個までです。");
                                   return;
                                 }
                                 const c = {
@@ -965,6 +973,10 @@ export default function App() {
                       有理式として計算済み · 係数条件は下記参照
                     </p>
                   </div>
+                  {answerFraction && <RealizationPanel
+                    key={`${tab}:${JSON.stringify(answerFraction)}`}
+                    value={answerFraction}
+                  />}
                   {tab === "formula" && currentGenerated && (
                     <div className="candidate-section">
                       <h3>

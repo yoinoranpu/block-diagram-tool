@@ -1,3 +1,6 @@
+import { realize } from "./realization";
+import { editStateDiagram } from "./editStateDiagram";
+import type { StateDiagramOptions } from "./StateConnectedGraph";
 import { stateSpace, type StateSpaceInput } from "./stateSpace";
 import {
   solve,
@@ -11,6 +14,7 @@ import {
 self.onmessage = (
   event: MessageEvent<{
     state: StateSpaceInput;
+    options: StateDiagramOptions;
     id: number;
     kind: string;
     diagram: Diagram;
@@ -23,7 +27,9 @@ self.onmessage = (
   const { id, kind, diagram, num, den, otherNum, otherDen } = event.data;
   try {
     const value =
-      kind === "stateSpace"
+      kind === "realize" ? realize(num, den)
+      : kind === "stateDiagram" ? editStateDiagram(event.data.state, event.data.options)
+      : kind === "stateSpace"
         ? stateSpace(event.data.state)
         : kind === "solve"
           ? solve(diagram)

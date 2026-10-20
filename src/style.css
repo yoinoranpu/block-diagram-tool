@@ -1802,3 +1802,9 @@ main {
 .state-output-wide {
   grid-column: 1 / -1;
 }
+
+.realization-section { padding: 18px 24px; border-top: 1px solid #e5ebf2; min-width: 0; }
+.realization-result h3 { font-size: 1rem; }
+.realization-matrix { display: flex; align-items: center; gap: 8px; padding: 10px 0; max-width: 100%; overflow-x: auto; }
+.realization-matrix > span:first-child { flex: 0 0 auto; }
+.realization-matrix .formula { flex: 0 0 auto; }
