@@ -84,12 +84,14 @@ function findPath(
   lead?: Point,
   tail?: Point,
 ): Point[] | undefined {
+  const extentX = [start.x, end.x, ...obstacles.flatMap((r) => [r.x1, r.x2])];
+  const extentY = [start.y, end.y, ...obstacles.flatMap((r) => [r.y1, r.y2])];
   const xs = [
     ...new Set([
       start.x,
       end.x,
-      -30,
-      1030,
+      Math.min(...extentX) - 48,
+      Math.max(...extentX) + 48,
       ...obstacles.flatMap((r) => [r.x1 - 6, r.x2 + 6]),
     ]),
   ].sort((a, b) => a - b);
@@ -97,8 +99,8 @@ function findPath(
     ...new Set([
       start.y,
       end.y,
-      -25,
-      645,
+      Math.min(...extentY) - 48,
+      Math.max(...extentY) + 48,
       ...obstacles.flatMap((r) => [r.y1 - 6, r.y2 + 6]),
       ...used.flatMap((path) => path.flatMap((p) => [p.y - 24, p.y + 24])),
     ]),

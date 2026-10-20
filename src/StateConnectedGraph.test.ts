@@ -141,3 +141,31 @@ it("主経路を一直線に保ち、Dがあっても積分器を通る経路を
     expect(route.startPoint.y).toBe(route.endPoint.y);
   }
 });
+
+it.each([false, true])("長い枝の幅を先に確保し、接続先を通り越さない（帰還=%s）", (feedback) => {
+  const nodes = [
+    { id: "u", kind: "input" as const, label: "u" },
+    { id: "i", kind: "integrator" as const, label: "i" },
+    { id: "out", kind: "sum" as const, label: "out" },
+    { id: "y", kind: "output" as const, label: "y" },
+    ...["a", "b", "c", "d"].map((id) => ({ id, kind: "gain" as const, label: id })),
+  ];
+  const from = feedback ? "out" : "u", to = feedback ? "i" : "out";
+  const pairs = [["u", "i"], ["i", "out"], ["out", "y"],
+    [from, "a"], ["a", "b"], ["b", "c"], ["c", "d"], ["d", to]];
+  const layout = layoutStateGraph({ nodes, edges: pairs.map(([from, to], i) =>
+    ({ id: `e${i}`, from, to, signal: from })) });
+  const center = (id: string) => {
+    const n = layout.children.find((n) => n.id === id)!;
+    return n.x + n.width / 2;
+  };
+  const direction = feedback ? -1 : 1;
+  const path = [from, "a", "b", "c", "d", to];
+  for (let i = 1; i < path.length; i++)
+    expect(direction * (center(path[i]) - center(path[i - 1]))).toBeGreaterThanOrEqual(100);
+  expect(layout.width).toBeGreaterThan(1200);
+  for (const id of ["a", "b", "c"]) {
+    const edge = layout.edges.find((e) => e.id === `e${pairs.findIndex(([a]) => a === id)}`)!;
+    expect(edge.sections[0].bendPoints).toHaveLength(0);
+  }
+});

@@ -9,7 +9,7 @@ import {
   outputSide,
 } from "./routing";
 import type { Diagram, DiagramNode } from "./model";
-/** Our own bounded signal-path layout: a straight forward path with side lanes. */
+/** Our own content-sized signal-path layout: a straight forward path with side lanes. */
 export function layoutStateGraph(model: StateGraph): StateLayout {
   const byId = new Map(model.nodes.map((n) => [n.id, n]));
   function preferredPath(start: string, target: string, allowed?: Set<string>) {
@@ -62,6 +62,29 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
     positions.set("u", { x: 80, y: 0 });
     positions.set("y", { x: 1100, y: 0 });
     positions.set("out", { x: 950, y: 0 });
+  }
+  // Reserve space for side chains before placing them. Drawing coordinates are
+  // independent of the viewport; fitting belongs to the renderer.
+  const offMain = new Set(
+    model.nodes.filter((n) => !positions.has(n.id)).map((n) => n.id),
+  );
+  for (let end = 1; end < main.length; end++) {
+    for (let start = 0; start < end; start++) {
+      const a = main[start], b = main[end];
+      const forward = preferredPath(a, b, offMain).slice(1, -1);
+      const backward = preferredPath(b, a, offMain).slice(1, -1);
+      const required = Math.max(...[forward, backward].map((path) =>
+        path.length
+          ? path.reduce((total, id) => total + size(byId.get(id)!).width, 0)
+            + (path.length + 1) * 100
+            + size(byId.get(a)!).width / 2 + size(byId.get(b)!).width / 2
+          : 0,
+      ));
+      const extra = required - (positions.get(b)!.x - positions.get(a)!.x);
+      if (extra > 0)
+        for (let i = end; i < main.length; i++)
+          positions.get(main[i])!.x += extra;
+    }
   }
   const remaining = new Set(
     model.nodes.filter((n) => !positions.has(n.id)).map((n) => n.id),
@@ -125,17 +148,17 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
       ...[...component].filter((id) => !path.includes(id)),
     ];
     const span = Math.max(
-      Math.abs(b.x - a.x) - 180,
-      (ordered.length - 1) * 210,
+      Math.abs(b.x - a.x) - 228,
+      (ordered.length - 1) * 228,
     );
     ordered.forEach((id, i) =>
       positions.set(id, {
         x:
-          left +
-          90 +
+          (b.x < a.x ? right - 114 : left + 114) +
+          (b.x < a.x ? -1 : 1) *
           (ordered.length === 1 ? 0 : (i * span) / (ordered.length - 1)),
         y,
-        reversed: false,
+        reversed: b.x < a.x,
       }),
     );
   }
