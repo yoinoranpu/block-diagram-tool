@@ -169,3 +169,41 @@ it.each([false, true])("長い枝の幅を先に確保し、接続先を通り�
     expect(edge.sections[0].bendPoints).toHaveLength(0);
   }
 });
+
+it.each([
+  [2, 2, false], [2, 2, true],
+  [3, 1, false], [3, 1, true],
+  [1, 3, false], [1, 3, true],
+] as const)("主経路%d個・枝%d個を整列する（帰還=%s）", (count, sideCount, feedback) => {
+  const forward = Array.from({ length: count }, (_, i) => `m${i}`);
+  const side = Array.from({ length: sideCount }, (_, i) => `h${i}`);
+  const nodes = [
+    { id: "u", kind: "input" as const, label: "u" },
+    { id: "q", kind: "sum" as const, label: "q" },
+    ...forward.map((id) => ({ id, kind: "integrator" as const, label: id })),
+    { id: "r", kind: "sum" as const, label: "r" },
+    { id: "y", kind: "output" as const, label: "y" },
+    ...side.map((id) => ({ id, kind: "gain" as const, label: id })),
+  ];
+  const paths = [["u", "q", ...forward, "r", "y"],
+    feedback ? ["r", ...side, "q"] : ["q", ...side, "r"]];
+  const edges = paths.flatMap((path, p) => path.slice(1).map((to, i) =>
+    ({ id: `${p}-${i}`, from: path[i], to, signal: path[i] })));
+  const layout = layoutStateGraph({ nodes, edges });
+  const point = (id: string) => {
+    const n = layout.children.find((n) => n.id === id)!;
+    return { x: n.x + n.width / 2, y: n.y + n.height / 2 };
+  };
+  const mainX = forward.map((id) => point(id).x);
+  const sideX = side.map((id) => point(id).x).sort((a, b) => a - b);
+  if (count === sideCount) expect(sideX).toEqual(mainX);
+  else expect((sideX[0] + sideX.at(-1)!) / 2)
+    .toBeCloseTo((mainX[0] + mainX.at(-1)!) / 2);
+  for (const id of ["u", "q", ...forward, "r", "y"])
+    expect(point(id).y).toBe(point("u").y);
+  for (const id of side) {
+    expect(point(id).y).toBe(point(side[0]).y);
+    const output = layout.children.find((n) => n.id === id)!.ports.find((p) => p.id === `${id}-out`)!;
+    expect(output.x === 0).toBe(feedback);
+  }
+});
