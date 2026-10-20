@@ -121,8 +121,8 @@ export function example(
       nodes: [
         u,
         node("branch", "p", 240, 210),
-        node("block", "g", 450, 110, "K", "s+a"),
-        node("block", "h", 450, 350, "1", "s+b"),
+        node("block", "g", 450, 210, "K", "s+a"),
+        node("block", "h", 450, 390, "1", "s+b"),
         node("sum", "q", 700, 210),
         y,
       ],
@@ -155,7 +155,7 @@ export function example(
   };
   if (type === "multi") {
     d.nodes.find((n) => n.id === "g")!.den = "s^3+a*s^2+b*s+1";
-    d.nodes.push(node("block", "j", 480, 70, "b", "s+1"));
+    d.nodes.push(node("block", "j", 480, 580, "b", "s+1"));
     d.edges.push(edge("p", "j"), edge("j", "q", -1));
   }
   d.nodes

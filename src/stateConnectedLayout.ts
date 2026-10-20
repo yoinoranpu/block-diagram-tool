@@ -132,7 +132,9 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
       to = outgoing[0]?.to;
     const a = from ? positions.get(from)! : { x: 80, y: 0 },
       b = to ? positions.get(to)! : { x: Math.max(1100, x - 180), y: 0 };
-    const side = b.x <= a.x ? 1 : -1;
+    // Keep the forward signal path on the top row; all auxiliary paths
+    // use aligned lanes underneath it, including parallel/feedforward paths.
+    const side = 1;
     const left = Math.min(a.x, b.x),
       right = Math.max(a.x, b.x);
     const y = lane(side, left - 50, right + 50);

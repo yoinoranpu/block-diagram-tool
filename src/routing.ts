@@ -51,7 +51,7 @@ function sumSides(d: Diagram): Map<string, Side> {
           ? "left"
           : source.y < n.y
             ? "top"
-            : source.y > n.y
+            : source.y > n.y || source.x > n.x + 50
               ? "bottom"
               : "left";
       out.set(e.id, side);
@@ -307,11 +307,13 @@ export function routeEdges(diagram: Diagram): RoutedEdge[] {
       b = diagram.nodes.find((n) => n.id === edge.to)!;
     const fromSide =
         a.kind === "branch"
-          ? Math.abs(b.y - a.y) > 40
-            ? b.y < a.y
-              ? "top"
-              : "bottom"
-            : outputSide(a)
+          ? b.x < a.x && Math.abs(b.y - a.y) <= 40
+            ? "bottom"
+            : Math.abs(b.y - a.y) > 40
+              ? b.y < a.y
+                ? "top"
+                : "bottom"
+              : outputSide(a)
           : outputSide(a),
       toSide = sides.get(edge.id) ?? inputSide(b);
     const start =

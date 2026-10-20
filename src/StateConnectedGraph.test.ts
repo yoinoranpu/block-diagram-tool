@@ -44,6 +44,10 @@ it.each(cases)(
     expect(model.edges).toHaveLength(nonzero * 2 + data.A.length + 1);
     const out = layoutStateGraph(model);
     expect(out.edges).toHaveLength(model.edges.length);
+    const baseline = out.children.find((n) => n.id === "u")!;
+    for (const node of out.children)
+      expect(node.y + node.height / 2).toBeGreaterThanOrEqual(baseline.y + baseline.height / 2);
+
     for (const node of out.children!) {
       expect(Number.isFinite(node.x) && Number.isFinite(node.y)).toBe(true);
       for (const other of out.children!.filter((n) => n.id !== node.id)) {
@@ -103,6 +107,8 @@ it.each(cases)(
           ...(section.bendPoints ?? []),
           section.endPoint,
         ];
+        for (const p of points)
+          expect(p.y).toBeGreaterThanOrEqual(baseline.y + baseline.height / 2 - 1e-8);
         for (let i = 1; i < points.length; i++)
           expect(
             Math.abs(points[i].x - points[i - 1].x) < 0.01 ||
@@ -203,6 +209,7 @@ it.each([
     expect(point(id).y).toBe(point("u").y);
   for (const id of side) {
     expect(point(id).y).toBe(point(side[0]).y);
+    expect(point(id).y).toBeGreaterThan(point("u").y);
     const output = layout.children.find((n) => n.id === id)!.ports.find((p) => p.id === `${id}-out`)!;
     expect(output.x === 0).toBe(feedback);
   }
