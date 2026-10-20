@@ -214,3 +214,46 @@ it.each([
     expect(output.x === 0).toBe(feedback);
   }
 });
+
+it.each([2, 3])("%d状態の並列経路と自己帰還を列にそろえ、U字の帰還に余計な折返しを作らない", (count) => {
+  const model = stateConnectedGraph({
+    A: Array.from({ length: count }, (_, i) =>
+      Array.from({ length: count }, (_, j) => i === j ? `${i + 2}` : "0")),
+    B: Array.from({ length: count }, (_, i) => i === 0 ? "2" : "-2"),
+    C: Array(count).fill("1"), D: "0",
+  });
+  const layout = layoutStateGraph(model);
+  const center = (id: string) => {
+    const n = layout.children.find((n) => n.id === id)!;
+    return { x: n.x + n.width / 2, y: n.y + n.height / 2 };
+  };
+  for (let i = 1; i <= count; i++) {
+    const state = center(`x${i}`), loop = center(`A${i}${i}`);
+    expect(loop.x).toBe(state.x);
+    expect(loop.y).toBeGreaterThan(state.y);
+    for (const [id, reference] of [[`B${i}`, "B1"], [`sum${i - 1}`, "sum0"], [`x${i}`, "x1"], [`C${i}`, "C1"]]) {
+      expect(center(id).x).toBe(center(reference).x);
+      expect(center(id).y).toBe(state.y);
+    }
+    if (i < count) expect(loop.y).toBeLessThan(center(`B${i + 1}`).y);
+    const route = (from: string, to: string) => {
+      const id = model.edges.find((e) => e.from === from && e.to === to)!.id;
+      const s = layout.edges.find((e) => e.id === id)!.sections[0];
+      return [s.startPoint, ...s.bendPoints, s.endPoint];
+    };
+    const down = route(`x${i}`, `A${i}${i}`);
+    const back = route(`A${i}${i}`, `sum${i - 1}`);
+    expect(down.length - 2 + back.length - 2).toBeLessThanOrEqual(3);
+    for (let j = 1; j < down.length; j++) expect(down[j].y).toBeGreaterThanOrEqual(down[j - 1].y);
+    for (let j = 1; j < back.length; j++) {
+      expect(back[j].x).toBeLessThanOrEqual(back[j - 1].x);
+      expect(back[j].y).toBeLessThanOrEqual(back[j - 1].y);
+    }
+    const input = route("u", `B${i}`);
+    expect(input.length - 2).toBeLessThanOrEqual(2);
+    for (let j = 1; j < input.length; j++) {
+      expect(input[j].x).toBeGreaterThanOrEqual(input[j - 1].x);
+      expect(input[j].y).toBeGreaterThanOrEqual(input[j - 1].y);
+    }
+  }
+});

@@ -153,3 +153,31 @@ test("密な3次行列の全25要素をブラウザWorkerで接続する", async
     .locator(".state-connected")
     .screenshot({ path: info.outputPath("dense-connected.png") });
 });
+
+test("並列状態の自己帰還を積分器の直下と次の状態経路の間へ置く", async ({ page }, info) => {
+  for (let i = 1; i <= 2; i++) {
+    for (let j = 1; j <= 2; j++)
+      await page.getByRole("textbox", { name: `A(${i},${j})`, exact: true })
+        .fill(i === j ? String(i + 1) : "0");
+    await page.getByRole("textbox", { name: `B(${i})`, exact: true }).fill(i === 1 ? "2" : "-2");
+    await page.getByRole("textbox", { name: `C(${i})`, exact: true }).fill("1");
+  }
+  await page.getByRole("textbox", { name: "D", exact: true }).fill("0");
+  await page.getByRole("button", { name: "伝達関数と状態変数線図を求める" }).click();
+  await expect(page.locator(".state-connected-node")).toHaveCount(13);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  const point = async (id: string) => {
+    const box = await page.locator(`.state-connected-node[data-node-id="${id}"] .node-body`).boundingBox();
+    return { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+  };
+  const x1 = await point("x1"), x2 = await point("x2");
+  const a11 = await point("A11"), a22 = await point("A22");
+  expect(a11.x).toBeCloseTo(x1.x, 1);
+  expect(a22.x).toBeCloseTo(x2.x, 1);
+  expect(x2.x).toBeCloseTo(x1.x, 1);
+  expect(a11.y).toBeGreaterThan(x1.y);
+  expect(a11.y).toBeLessThan(x2.y);
+  expect(a22.y).toBeGreaterThan(x2.y);
+  expect((await point("B2")).x).toBeCloseTo((await point("B1")).x, 1);
+  await page.locator(".state-connected").screenshot({ path: info.outputPath("diagonal-feedback.png") });
+});
