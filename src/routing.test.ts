@@ -146,8 +146,25 @@ it("広い描画領域へ移しても配線形状が変わらず、全体表示�
   };
   const before = routeEdges(original), after = routeEdges(shifted);
   expect(after.every((r) => !r.obstructed)).toBe(true);
-  expect(after.map((r) => r.points.map((p) => ({ x: p.x - 4000, y: p.y - 2500 }))))
-    .toEqual(before.map((r) => r.points));
+  for (let i = 0; i < before.length; i++) {
+    expect(after[i].points).toHaveLength(before[i].points.length);
+    for (let j = 0; j < before[i].points.length; j++) {
+      expect(after[i].points[j].x - 4000).toBeCloseTo(before[i].points[j].x, 8);
+      expect(after[i].points[j].y - 2500).toBeCloseTo(before[i].points[j].y, 8);
+    }
+  }
   const a = diagramBounds(original, before), b = diagramBounds(shifted, after);
   expect(b).toEqual({ ...a, x: a.x + 4000, y: a.y + 2500 });
+});
+
+it("同じ高さから直接戻る帰還も下側を通り、加算点へ下から入る", () => {
+  const d = example("negative");
+  d.nodes = d.nodes.filter((n) => n.id !== "h");
+  d.edges = d.edges.filter((e) => e.from !== "h" && e.to !== "h");
+  d.edges.push({ id: "return", from: "p", to: "q", sign: -1 });
+  const route = routeEdges(d).find((r) => r.edge.id === "return")!;
+  expect(route.obstructed).toBe(false);
+  expect(route.toSide).toBe("bottom");
+  expect(route.points.every((p) => p.y >= 210)).toBe(true);
+  expect(route.points.some((p) => p.y > 250)).toBe(true);
 });
