@@ -87,13 +87,27 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
             extra * Math.min(1, (i - start) / (end - start));
     }
   }
+  // Peel local state feedback out of parallel chains. Otherwise an undirected
+  // component incorrectly treats Aii as one more forward-path block.
+  const localLoops = model.nodes.filter((n) => {
+    if (n.kind !== "gain" || positions.has(n.id)) return false;
+    const incoming = model.edges.filter((e) => e.to === n.id);
+    const outgoing = model.edges.filter((e) => e.from === n.id);
+    return incoming.length === 1 && outgoing.length === 1 &&
+      byId.get(incoming[0].from)?.kind === "integrator" &&
+      byId.get(outgoing[0].to)?.kind === "sum" &&
+      model.edges.some((e) => e.from === outgoing[0].to && e.to === incoming[0].from);
+  });
+  const pendingLoops = new Set(localLoops.map((n) => n.id));
   const remaining = new Set(
-    model.nodes.filter((n) => !positions.has(n.id)).map((n) => n.id),
+    model.nodes
+      .filter((n) => !positions.has(n.id) && !pendingLoops.has(n.id))
+      .map((n) => n.id),
   );
   const lanes: { side: number; row: number; left: number; right: number }[] =
     [];
-  function lane(side: number, left: number, right: number) {
-    let row = 1;
+  function lane(side: number, left: number, right: number, below = 0) {
+    let row = Math.max(1, Math.ceil(below / 180) + 1);
     while (
       lanes.some(
         (l) =>
@@ -106,7 +120,24 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
     lanes.push({ side, row, left, right });
     return side * (row * 180);
   }
+  function placeLocalLoops() {
+    for (const id of pendingLoops) {
+      const from = model.edges.find((e) => e.to === id)!.from;
+      const to = model.edges.find((e) => e.from === id)!.to;
+      const a = positions.get(from), b = positions.get(to);
+      if (!a || !b) continue;
+      positions.set(id, {
+        x: a.x,
+        y: lane(
+          1, Math.min(a.x, b.x) - 50, Math.max(a.x, b.x) + 50, Math.max(a.y, b.y),
+        ),
+        reversed: b.x <= a.x,
+      });
+      pendingLoops.delete(id);
+    }
+  }
   while (remaining.size) {
+    placeLocalLoops();
     const seed = remaining.values().next().value!;
     const component = new Set([seed]),
       queue = [seed];
@@ -155,6 +186,16 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
           Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1,
         ).filter(isBlock)
       : [];
+    const referencePath = startIndex >= 0 && endIndex > startIndex
+      ? main.slice(startIndex + 1, endIndex) : [];
+    if (path.length === component.size && incoming.length === 1 && outgoing.length === 1 &&
+        referencePath.length === path.length && path.every((id, i) =>
+          byId.get(id)!.kind === byId.get(referencePath[i])!.kind)) {
+      path.forEach((id, i) => positions.set(id, {
+        x: positions.get(referencePath[i])!.x, y,
+      }));
+      continue;
+    }
     const blocks = ordered.filter(isBlock);
     const simpleChain = ordered.length === blocks.length &&
       component.size === path.length &&
@@ -195,6 +236,7 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
       }),
     );
   }
+  placeLocalLoops();
   const diagram: Diagram = {
     nodes: model.nodes.map((n) => {
       const p = positions.get(n.id)!;
