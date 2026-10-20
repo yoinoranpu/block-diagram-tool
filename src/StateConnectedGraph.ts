@@ -58,7 +58,6 @@ export function stateConnectedGraph(data: StateSpaceInput): StateGraph {
     connect(`sum${i}`, `x${i + 1}`, `dx${i + 1}`);
   }
   function gain(id: string, from: string, to: string, value: string) {
-    if (value === "0") return;
     nodes.push({ id, kind: "gain", label: id, value });
     connect(from, id, from);
     connect(id, to, id);
