@@ -4,6 +4,7 @@ import { buildLearning, type LearningStep } from "./learning";
 import nerdamer from "nerdamer/all.js";
 import {
   polynomial,
+  primitiveFraction,
   stringify,
   normalize,
   determinant,
@@ -75,11 +76,45 @@ export const div = (a: Fraction, b: Fraction) => {
     ];
   return result;
 };
-export const text = (a: Fraction) => (a.d === "1" ? a.n : `(${a.n})/(${a.d})`);
-export const latex = (a: Fraction) =>
-  a.d === "1"
-    ? nerdamer(a.n).toTeX()
-    : `\\frac{${nerdamer(a.n).toTeX()}}{${nerdamer(a.d).toTeX()}}`;
+export function displayFraction(a: Fraction): Fraction {
+  const p = primitiveFraction(polynomial(a.n), polynomial(a.d));
+  return { ...a, n: stringify(p.n), d: stringify(p.d) };
+}
+export const text = (value: Fraction) => {
+  const a = displayFraction(value);
+  return a.d === "1" ? a.n : `(${a.n})/(${a.d})`;
+};
+function polynomialTex(source: string) {
+  const terms = [...polynomial(source)];
+  const powers = (key: string) =>
+    key ? key.split(",").map((t) => t.split(":")) : [];
+  const degree = (key: string, v?: string) =>
+    powers(key).reduce((n, [x, p]) => n + (!v || x === v ? Number(p) : 0), 0);
+  terms.sort(
+    ([a], [b]) =>
+      degree(b, "s") - degree(a, "s") ||
+      degree(b) - degree(a) ||
+      a.localeCompare(b),
+  );
+  return (
+    terms
+      .map(([key, c], i) => {
+        const monomial = powers(key)
+          .map(([v, p]) => (Number(p) === 1 ? v : `${v}^{${p}}`))
+          .join("\\,");
+        const num = c.n < 0n ? -c.n : c.n;
+        const coeff = c.d === 1n ? String(num) : `\\frac{${num}}{${c.d}}`;
+        return `${c.n < 0n ? "-" : i ? "+" : ""}${monomial && num === c.d ? "" : coeff}${monomial}`;
+      })
+      .join("") || "0"
+  );
+}
+export const latex = (value: Fraction) => {
+  const a = displayFraction(value);
+  return a.d === "1"
+    ? polynomialTex(a.n)
+    : `\\frac{${polynomialTex(a.n)}}{${polynomialTex(a.d)}}`;
+};
 export const equal = (a: Fraction, b: Fraction) =>
   zero(`(${a.n})*(${b.d})-(${b.n})*(${a.d})`);
 const ONE: Fraction = { n: "1", d: "1" };
@@ -315,7 +350,7 @@ export function solve(diagram: Diagram, includeLearning = true): Analysis {
         };
       }
     })(),
-    value: result,
+    value: displayFraction(result),
     tex: latex(result),
     expression: text(result),
     equations,
@@ -391,7 +426,7 @@ export function generate(
   candidates: Candidate[];
   limitations: string[];
 } {
-  const original = transfer(num, den);
+  const original = displayFraction(transfer(num, den));
   const candidates: Candidate[] = [],
     limitations: string[] = [];
   const accept = (title: string, explanation: string, diagram: Diagram) => {

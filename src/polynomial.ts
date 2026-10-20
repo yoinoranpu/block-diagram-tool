@@ -259,3 +259,23 @@ export function determinant(matrix: P[][]): P {
   }
   return times(constant(sign), a.at(-1)!.at(-1)!);
 }
+
+/** Clear rational coefficients jointly; do not force the numerator or denominator to 1. */
+export function primitiveFraction(n: P, d: P): { n: P; d: P } {
+  if (!d.size) throw new Error("分母が0です。");
+  if (!n.size) return { n: constant(0n), d: constant(1n) };
+  const all = [...n.values(), ...d.values()];
+  const lcm = all.reduce((a, v) => (a / gcd(a, v.d)) * v.d, 1n);
+  const content = all.reduce((a, v) => gcd(a, v.n * (lcm / v.d)), 0n);
+  const sDegree = (key: string) =>
+    Number(key.match(/(?:^|,)s:(\d+)/)?.[1] ?? 0);
+  const first = [...d].sort(
+    ([a], [b]) => sDegree(b) - sDegree(a) || -compare(a, b),
+  )[0][1];
+  const sign = first.n < 0n ? -1n : 1n;
+  const scale = (p: P) =>
+    new Map(
+      [...p].map(([k, v]) => [k, q((sign * v.n * (lcm / v.d)) / content)]),
+    );
+  return { n: scale(n), d: scale(d) };
+}

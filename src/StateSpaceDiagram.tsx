@@ -1,7 +1,38 @@
+import { stateSignalLabel } from "./stateNotation";
+import { StateConnectedDiagram } from "./StateConnectedDiagram";
 import { useId, useRef, useState } from "react";
 import type { StateSpaceInput } from "./stateSpace";
 import { downloadDiagram } from "./exportDiagram";
 export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
+  const [mode, setMode] = useState<"connected" | "labels">("connected");
+  return (
+    <div>
+      <div className="state-diagram-switch" aria-label="状態変数線図の表示方法">
+        <button
+          aria-pressed={mode === "connected"}
+          onClick={() => setMode("connected")}
+        >
+          すべて線で接続
+        </button>
+        <button
+          aria-pressed={mode === "labels"}
+          onClick={() => setMode("labels")}
+        >
+          ラベルで接続
+        </button>
+      </div>
+      {mode === "connected" ? (
+        <StateConnectedDiagram
+          data={data}
+          onFallback={() => setMode("labels")}
+        />
+      ) : (
+        <StateLabelDiagram data={data} />
+      )}
+    </div>
+  );
+}
+function StateLabelDiagram({ data }: { data: StateSpaceInput }) {
   const id = useId().replace(/:/g, ""),
     svg = useRef<SVGSVGElement>(null);
   const [error, setError] = useState(""),
@@ -51,7 +82,7 @@ export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
   return (
     <div className="state-diagram">
       <p className="field-hint">
-        同じラベル（x1・x2・x3・u）は同じ信号です。各行は入力した行列の状態方程式に対応します。負号は係数ブロック内に表示します。
+        同じラベル（x₁・x₂・x₃・u）は同じ信号です。各行は入力した行列の状態方程式に対応します。負号は係数ブロック内に表示します。
       </p>
       <div className="state-diagram-tools">
         <button onClick={() => setScale(Math.max(1, scale - 0.5))}>縮小</button>
@@ -86,7 +117,9 @@ export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
             return (
               <g key={row.name}>
                 <text x="24" y={row.y + 14} className="node-label">
-                  {row.integrate ? `${row.name} の状態方程式` : "出力方程式"}
+                  {row.integrate
+                    ? `${stateSignalLabel(row.name)} の状態方程式`
+                    : "出力方程式"}
                 </text>
                 {row.terms.map((term, i) => {
                   const y = row.y + 36 + i * 66;
@@ -97,7 +130,7 @@ export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
                   return (
                     <g key={term.label}>
                       <text x="40" y={y + 5} className="node-label">
-                        {term.source}
+                        {stateSignalLabel(term.source)}(s)
                       </text>
                       <path
                         d={`M75 ${y}H150`}
@@ -211,7 +244,7 @@ export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
                   markerEnd={`url(#state-${id})`}
                 />
                 <text x="845" y={middle + 5} className="node-label">
-                  {row.name}
+                  {stateSignalLabel(row.name)}(s)
                 </text>
               </g>
             );

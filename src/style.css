@@ -1747,3 +1747,58 @@ main {
 .state-diagram-scroll {
   max-height: 70vh;
 }
+.state-diagram-switch {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.state-diagram-switch button[aria-pressed="true"] {
+  background: #eaf2ff;
+  border-color: #6e9fe8;
+  color: #215bb6;
+}
+.state-connected-scroll {
+  max-height: 65vh;
+  min-height: 180px;
+  overflow: auto;
+  border: 1px solid #e1e7f0;
+  background: #fafcff;
+}
+.state-connected-scroll svg {
+  display: block;
+  margin: auto;
+  max-width: none;
+}
+.state-connected .wire {
+  fill: none;
+  stroke: #53677f;
+  stroke-width: 1.8;
+}
+.state-connected .wire-underlay {
+  fill: none;
+  stroke: #fafcff;
+  stroke-width: 6;
+}
+.state-connected .node-body {
+  fill: white;
+  stroke: #607991;
+  stroke-width: 1.5;
+}
+.state-connected text {
+  fill: #24334a;
+  font-family: Arial, sans-serif;
+}
+.state-connected .node-label {
+  font-size: 16px;
+  font-style: italic;
+}
+.state-connected .node-expression {
+  font-size: 18px;
+}
+.state-connected .terminal-label {
+  font-size: 12px;
+}
+.state-output-wide {
+  grid-column: 1 / -1;
+}
