@@ -1166,6 +1166,15 @@ export default function App() {
             無料・ログイン不要。AI
             APIや外部計算サーバーは使いません。自動保存はこのブラウザ内のみです。重要な図はJSONで保存してください。
           </p>
+          <p>
+            <a
+              href="./third-party-notices.txt"
+              target="_blank"
+              rel="noreferrer"
+            >
+              利用ライブラリ・ライセンス
+            </a>
+          </p>
         </footer>
       </main>
     </>

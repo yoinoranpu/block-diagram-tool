@@ -1,4 +1,5 @@
 import {
+  displayFraction,
   parse,
   fraction,
   add,
@@ -67,7 +68,7 @@ export function stateSpace(input: StateSpaceInput): StateSpaceResult {
     D: text(D),
   };
   return {
-    value,
+    value: displayFraction(value),
     tex: latex(value),
     expression: text(value),
     conditions: [...conditions],

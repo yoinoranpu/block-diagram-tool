@@ -341,32 +341,6 @@ export function StateSpaceWorkspace() {
                 初期値0の入出力関係として厳密計算済み
               </p>
             </div>
-            <div className="state-output">
-              <h3>入力した行列の状態変数線図</h3>
-              <StateSpaceDiagram data={result.coefficients} />
-              <details>
-                <summary>計算過程・成立条件</summary>
-                <p>G(s) = C(sI−A)⁻¹B + D</p>
-                <p>
-                  初期値を0として (sI−A)X = BU を解き、Y = CX + DU
-                  に代入します。逆行列の数値近似を使わず、行列式で有理式を計算しています。
-                </p>
-                <code>det(sI−A) = {result.determinant}</code>
-                <p>
-                  逆行列の式はdet(sI−A) ≠
-                  0の範囲で成立し、答えは有理伝達関数として扱います。
-                </p>
-                {result.conditions.map((c) => (
-                  <p key={c}>{c}</p>
-                ))}
-                {result.equations.map((e) => (
-                  <pre key={e}>{e}</pre>
-                ))}
-                <p>
-                  極零相殺がある場合、伝達関数だけでは内部状態の安定性を判断できません。非ゼロ初期値、時変系、多入力多出力は未対応です。
-                </p>
-              </details>
-            </div>
           </>
         ) : (
           <div className="empty-result">
@@ -379,6 +353,34 @@ export function StateSpaceWorkspace() {
           </div>
         )}
       </aside>
+      {result && (
+        <section className="panel state-output state-output-wide">
+          <h3>入力した行列の状態変数線図</h3>
+          <StateSpaceDiagram data={result.coefficients} />
+          <details>
+            <summary>計算過程・成立条件</summary>
+            <p>G(s) = C(sI−A)⁻¹B + D</p>
+            <p>
+              初期値を0として (sI−A)X = BU を解き、Y = CX + DU
+              に代入します。逆行列の数値近似を使わず、行列式で有理式を計算しています。
+            </p>
+            <code>det(sI−A) = {result.determinant}</code>
+            <p>
+              逆行列の式はdet(sI−A) ≠
+              0の範囲で成立し、答えは有理伝達関数として扱います。
+            </p>
+            {result.conditions.map((c) => (
+              <p key={c}>{c}</p>
+            ))}
+            {result.equations.map((e) => (
+              <pre key={e}>{e}</pre>
+            ))}
+            <p>
+              極零相殺がある場合、伝達関数だけでは内部状態の安定性を判断できません。非ゼロ初期値、時変系、多入力多出力は未対応です。
+            </p>
+          </details>
+        </section>
+      )}
     </div>
   );
 }
