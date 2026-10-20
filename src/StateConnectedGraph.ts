@@ -41,7 +41,8 @@ export type StateLayout = {
     junctionPoints: LayoutPoint[];
   }[];
 };
-export function stateConnectedGraph(data: StateSpaceInput): StateGraph {
+export type StateDiagramOptions = { omitZero?: boolean; omitOne?: boolean };
+export function stateConnectedGraph(data: StateSpaceInput, options: StateDiagramOptions = {}): StateGraph {
   const nodes: StateNode[] = [
       { id: "u", kind: "input", label: "u" },
       { id: "y", kind: "output", label: "y" },
@@ -58,6 +59,11 @@ export function stateConnectedGraph(data: StateSpaceInput): StateGraph {
     connect(`sum${i}`, `x${i + 1}`, `dx${i + 1}`);
   }
   function gain(id: string, from: string, to: string, value: string) {
+    if (options.omitZero && value === "0") return;
+    if (options.omitOne && value === "1") {
+      connect(from, to, from);
+      return;
+    }
     nodes.push({ id, kind: "gain", label: id, value });
     connect(from, id, from);
     connect(id, to, id);

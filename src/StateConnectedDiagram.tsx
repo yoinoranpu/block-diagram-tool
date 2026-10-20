@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useId } from "react";
-import type { StateLayout, LayoutPoint } from "./StateConnectedGraph";
+import type { StateLayout, LayoutPoint, StateDiagramOptions } from "./StateConnectedGraph";
 import type { StateSpaceInput } from "./stateSpaceModel";
 import { stateConnectedGraph } from "./StateConnectedGraph";
 import { stateSignalLabel } from "./stateNotation";
@@ -21,13 +21,15 @@ function simplify(points: LayoutPoint[]) {
 }
 export function StateConnectedDiagram({
   data,
+  options,
   onFallback,
 }: {
   data: StateSpaceInput;
+  options: StateDiagramOptions;
   onFallback: () => void;
 }) {
-  const key = JSON.stringify(data),
-    model = useMemo(() => stateConnectedGraph(data), [key]);
+  const key = JSON.stringify([data, options]),
+    model = useMemo(() => stateConnectedGraph(data, options), [key]);
   const [layout, setLayout] = useState<{ key: string; graph: StateLayout }>(),
     [error, setError] = useState(""),
     [scale, setScale] = useState(1),
