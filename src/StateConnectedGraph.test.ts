@@ -272,3 +272,26 @@ it("零伝達関数の単一ブロックも主経路上で0を表示できる", 
   expect(layout.main).toEqual(["u", "zero", "y"]);
   expect(layout.edges.every((e) => e.sections[0].bendPoints.length === 0)).toBe(true);
 });
+
+it.each([
+  { omitZero: false, omitOne: false }, { omitZero: true, omitOne: false },
+  { omitZero: false, omitOne: true }, { omitZero: true, omitOne: true },
+])("省略設定 %j でも接続後の伝達関数が一致する", async (options) => {
+  const { solve, equal } = await import("./engine");
+  const { stateSpace } = await import("./stateSpace");
+  const data = { A: [["0", "1"], ["-b", "1"]], B: ["1", "1"], C: ["1", "0"], D: "1" };
+  const model = stateConnectedGraph(data, options);
+  expect(model.nodes.filter((n) => n.kind === "integrator")).toHaveLength(2);
+  if (options.omitZero) expect(model.nodes.some((n) => n.kind === "gain" && n.value === "0")).toBe(false);
+  if (options.omitOne) expect(model.nodes.some((n) => n.kind === "gain" && n.value === "1")).toBe(false);
+  const layout = layoutStateGraph(model);
+  expect(layout.edges).toHaveLength(model.edges.length);
+  const diagram = {
+    nodes: model.nodes.map((n) => ({ ...n, x: 100, y: 100,
+      kind: n.kind === "gain" || n.kind === "integrator" ? "block" : n.kind,
+      num: n.value ?? "1", den: n.kind === "integrator" ? "s" : "1",
+    } as import("./model").DiagramNode)),
+    edges: model.edges.map((e) => ({ ...e, sign: 1 as const })),
+  };
+  expect(equal(solve(diagram, false).value, stateSpace(data).value)).toBe(true);
+});

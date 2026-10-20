@@ -190,3 +190,29 @@ test("並列状態の自己帰還を積分器の直下と次の状態経路の�
   expect(zeroLabels).toBe(3);
 
 });
+
+test("0と1の省略を個別に切り替え、表示を戻しても行列と答えを保つ", async ({ page }) => {
+  await page.getByRole("button", { name: "伝達関数と状態変数線図を求める" }).click();
+  await expect(page.locator(".state-connected-node")).toHaveCount(16);
+  const value = await page.locator(".state-workspace .result-formula").textContent();
+  const zero = page.getByRole("button", { name: "0を省略", exact: true });
+  const one = page.getByRole("button", { name: "1を省略", exact: true });
+  await zero.click();
+  await expect(zero).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('.state-connected-node[data-node-id="A11"]')).toHaveCount(0);
+  await expect(page.locator('.state-connected-node[data-node-id="A12"]')).toHaveCount(1);
+  await one.click();
+  await expect(one).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('.state-connected-node[data-node-id="A12"]')).toHaveCount(0);
+  await expect(page.locator('.state-connected-node[data-node-id="x1"]')).toHaveCount(1);
+  await expect(page.locator(".state-workspace .result-formula")).toHaveText(value!);
+  await page.getByRole("button", { name: "ラベルで接続", exact: true }).click();
+  await expect(zero).toHaveAttribute("aria-pressed", "true");
+  await zero.click();
+  await expect(one).toHaveAttribute("aria-pressed", "true");
+  await one.click();
+  await page.getByRole("button", { name: "すべて線で接続", exact: true }).click();
+  await expect(page.locator(".state-connected-node")).toHaveCount(16);
+  await expect(page.getByRole("textbox", { name: "A(1,1)", exact: true })).toHaveValue("0");
+  await expect(page.locator(".state-workspace .result-formula")).toHaveText(value!);
+});

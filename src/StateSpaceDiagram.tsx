@@ -2,9 +2,13 @@ import { stateSignalLabel } from "./stateNotation";
 import { StateConnectedDiagram } from "./StateConnectedDiagram";
 import { useId, useRef, useState } from "react";
 import type { StateSpaceInput } from "./stateSpace";
+import type { StateDiagramOptions } from "./StateConnectedGraph";
 import { downloadDiagram } from "./exportDiagram";
 export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
   const [mode, setMode] = useState<"connected" | "labels">("connected");
+  const [omitZero, setOmitZero] = useState(false);
+  const [omitOne, setOmitOne] = useState(false);
+  const options = { omitZero, omitOne };
   return (
     <div>
       <div className="state-diagram-switch" aria-label="状態変数線図の表示方法">
@@ -20,19 +24,29 @@ export function StateSpaceDiagram({ data }: { data: StateSpaceInput }) {
         >
           ラベルで接続
         </button>
+        <button aria-pressed={omitZero} onClick={() => setOmitZero(!omitZero)}>
+          0を省略
+        </button>
+        <button aria-pressed={omitOne} onClick={() => setOmitOne(!omitOne)}>
+          1を省略
+        </button>
       </div>
       {mode === "connected" ? (
         <StateConnectedDiagram
           data={data}
+          options={options}
           onFallback={() => setMode("labels")}
         />
       ) : (
-        <StateLabelDiagram data={data} />
+        <StateLabelDiagram data={data} options={options} />
       )}
     </div>
   );
 }
-function StateLabelDiagram({ data }: { data: StateSpaceInput }) {
+function StateLabelDiagram({ data, options }: {
+  data: StateSpaceInput;
+  options: StateDiagramOptions;
+}) {
   const id = useId().replace(/:/g, ""),
     svg = useRef<SVGSVGElement>(null);
   const [error, setError] = useState(""),
@@ -62,7 +76,7 @@ function StateLabelDiagram({ data }: { data: StateSpaceInput }) {
         { source: "u", value: data.D, label: "D" },
       ],
     },
-  ];
+  ].map((row) => ({ ...row, terms: row.terms.filter((t) => !options.omitZero || t.value !== "0") }));
   let top = 24;
   const lanes = rows.map((row) => {
     const height = Math.max(100, row.terms.length * 66);
@@ -137,33 +151,39 @@ function StateLabelDiagram({ data }: { data: StateSpaceInput }) {
                         className="wire"
                         markerEnd={`url(#state-${id})`}
                       />
-                      <rect
-                        x="150"
-                        y={y - 22}
-                        width="190"
-                        height="44"
-                        rx="5"
-                        className="node-body"
-                      />
-                      <text
-                        x="245"
-                        y={y - 5}
-                        textAnchor="middle"
-                        className="terminal-label"
-                      >
-                        {term.label}
-                      </text>
-                      <text
-                        x="245"
-                        y={y + 13}
-                        textAnchor="middle"
-                        className="node-expression"
-                        textLength={term.value.length > 18 ? 174 : undefined}
-                        lengthAdjust="spacingAndGlyphs"
-                      >
-                        <title>{term.value}</title>
-                        {term.value}
-                      </text>
+                      {options.omitOne && term.value === "1" ? (
+                        <path d={`M150 ${y}H340`} className="wire" />
+                      ) : (
+                        <>
+                          <rect
+                            x="150"
+                            y={y - 22}
+                            width="190"
+                            height="44"
+                            rx="5"
+                            className="node-body"
+                          />
+                          <text
+                            x="245"
+                            y={y - 5}
+                            textAnchor="middle"
+                            className="terminal-label"
+                          >
+                            {term.label}
+                          </text>
+                          <text
+                            x="245"
+                            y={y + 13}
+                            textAnchor="middle"
+                            className="node-expression"
+                            textLength={term.value.length > 18 ? 174 : undefined}
+                            lengthAdjust="spacingAndGlyphs"
+                          >
+                            <title>{term.value}</title>
+                            {term.value}
+                          </text>
+                        </>
+                      )}
                       <path
                         d={`M340 ${y}H${400 + Math.abs(i - (row.terms.length - 1) / 2) * 30}V${middle + offset}H${entryX}`}
                         className="wire"
