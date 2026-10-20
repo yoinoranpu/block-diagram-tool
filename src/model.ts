@@ -36,9 +36,9 @@ export function validateDiagram(value: unknown): Diagram {
       !Number.isFinite(n.x) ||
       !Number.isFinite(n.y) ||
       n.x < 0 ||
-      n.x > 980 ||
+      n.x > 10000 ||
       n.y < 0 ||
-      n.y > 600 ||
+      n.y > 10000 ||
       typeof n.num !== "string" ||
       (n.reversed !== undefined && typeof n.reversed !== "boolean") ||
       typeof n.den !== "string" ||

@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import ELK from "elkjs/lib/elk.bundled.js";
+import { layoutStateGraph } from "./stateConnectedLayout";
 import { stateConnectedGraph } from "./StateConnectedGraph";
 import type { StateSpaceInput } from "./stateSpaceModel";
 const cases: StateSpaceInput[] = [
@@ -42,7 +42,7 @@ it.each(cases)(
     ).length;
     expect(model.nodes.filter((n) => n.kind === "gain")).toHaveLength(nonzero);
     expect(model.edges).toHaveLength(nonzero * 2 + data.A.length + 1);
-    const out = await new ELK().layout(model.graph);
+    const out = layoutStateGraph(model);
     expect(out.edges).toHaveLength(model.edges.length);
     for (const node of out.children!) {
       expect(Number.isFinite(node.x) && Number.isFinite(node.y)).toBe(true);
@@ -113,3 +113,31 @@ it.each(cases)(
   },
   15000,
 );
+
+it("主経路を一直線に保ち、Dがあっても積分器を通る経路を優先する", () => {
+  const model = stateConnectedGraph({
+    A: [
+      ["0", "1"],
+      ["-b", "-a"],
+    ],
+    B: ["0", "K"],
+    C: ["1", "0"],
+    D: "1",
+  });
+  const layout = layoutStateGraph(model);
+  expect(layout.main).toContain("x1");
+  expect(layout.main).toContain("x2");
+  const y = layout.children.find((n) => n.id === "u")!.y + 24;
+  for (const id of layout.main) {
+    const n = layout.children.find((n) => n.id === id)!;
+    expect(n.y + n.height / 2).toBe(y);
+  }
+  for (let i = 1; i < layout.main.length; i++) {
+    const edge = model.edges.find(
+      (e) => e.from === layout.main[i - 1] && e.to === layout.main[i],
+    )!;
+    const route = layout.edges.find((e) => e.id === edge.id)!.sections[0];
+    expect(route.bendPoints).toHaveLength(0);
+    expect(route.startPoint.y).toBe(route.endPoint.y);
+  }
+});

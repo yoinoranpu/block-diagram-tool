@@ -5,7 +5,7 @@ it("画像の分数係数を整数係数と正の最高次係数にそろえる"
   const shown = displayFraction(original);
   expect(shown.n).toBe("-2");
   expect(shown.d).toBe("s^2-5*s+6");
-  expect(latex(original)).toBe("\\frac{-2}{s^{2}-5s+6}");
+  expect(latex(original, true)).toBe("\\frac{-2}{s^{2}-5s+6}");
   expect(equal(original, shown)).toBe(true);
 });
 it.each([
@@ -27,4 +27,12 @@ it("sの高次項から表示し、文字係数で割らない", () => {
   expect(shown.n).toBe("K");
   expect(shown.d).toContain("a*s^2");
   expect(latex(shown)).toBe("\\frac{K}{a\\,s^{2}+b\\,s+c}");
+});
+
+it("因数形を既定にし、展開形も取得できる", () => {
+  const value = transfer("-2", "s^2-5*s+6");
+  expect(latex(value)).toBe("\\frac{-2}{\\left(s-2\\right)\\left(s-3\\right)}");
+  expect(latex(value, true)).toBe("\\frac{-2}{s^{2}-5s+6}");
+  expect(latex(transfer("1", "s^2+2*s+1"))).toContain("\\left(s+1\\right)^{2}");
+  expect(latex(transfer("-s^2+s+6", "1"))).toContain("\\left(s-3\\right)");
 });

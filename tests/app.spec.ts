@@ -456,3 +456,56 @@ test("積分器線図を編集・整列しても出力は右側に残る", async
     .locator(".canvas-shell")
     .screenshot({ path: info.outputPath("integrator-arranged.png") });
 });
+
+test("広い線図でも複製・移動・JSON読込で古い範囲へ戻らない", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "02 伝達関数から線図" }).click();
+  await page.getByLabel("伝達関数の分子", { exact: true }).fill("K");
+  await page
+    .getByLabel("伝達関数の分母", { exact: true })
+    .fill("s^3+2*s^2+3*s+4");
+  await page.getByRole("button", { name: "等価な線図を生成する" }).click();
+  await page
+    .getByRole("button", { name: "積分器による構成", exact: true })
+    .click();
+  await page.getByRole("button", { name: "この線図を編集する →" }).click();
+  const block = page.getByRole("button", { name: "伝達関数 B3", exact: true });
+  const position = () =>
+    block.evaluate((el) => ({
+      x: (el as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.e,
+      y: (el as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.f,
+    }));
+  const before = await position();
+  expect(before.x).toBeGreaterThan(1000);
+  await block.click();
+  await block.focus();
+  await page.keyboard.press("Control+c");
+  await page.keyboard.press("Control+v");
+  const copy = page.getByRole("button", {
+    name: "伝達関数 B3 コピー",
+    exact: true,
+  });
+  expect(
+    await copy.evaluate(
+      (el) =>
+        (el as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.e,
+    ),
+  ).toBeGreaterThan(before.x);
+  await block.scrollIntoViewIfNeeded();
+  const box = await block.boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2 + 35, box!.y + 22, {
+    steps: 6,
+  });
+  await page.mouse.up();
+  expect((await position()).x).toBeGreaterThan(before.x);
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "保存・読込" }).click();
+  await page.getByRole("button", { name: "JSON保存", exact: true }).click();
+  const path = await (await downloading).path();
+  await page.getByRole("button", { name: "新規線図", exact: true }).click();
+  await page.locator("input[type=file]").setInputFiles(path!);
+  expect((await position()).x).toBeGreaterThan(before.x);
+});

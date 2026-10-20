@@ -1,9 +1,0 @@
-ELK.js 0.12.0
-Copyright (c) the ELK / ELK.js contributors.
-License selected for this application: Eclipse Public License 2.0 (EPL-2.0).
-Full license: ./licenses/elkjs-LICENSE.txt
-Unmodified upstream package used for graph layout in a Web Worker.
-Source code: https://github.com/kieler/elkjs/tree/0.12.0
-Package and corresponding source distribution: https://www.npmjs.com/package/elkjs/v/0.12.0
-The application's graph construction and SVG renderer are separate original code.
-Underlying Eclipse ELK source: https://github.com/eclipse-elk/elk

@@ -9,6 +9,7 @@ export type StateSpaceInput = {
 export type StateSpaceResult = {
   value: Fraction;
   tex: string;
+  expandedTex: string;
   expression: string;
   conditions: string[];
   equations: string[];

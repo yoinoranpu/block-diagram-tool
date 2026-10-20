@@ -111,6 +111,11 @@ test("画像の例を整数係数とsの降べき順で表示する", async ({ p
     .click();
   await expect(page.locator(".result-formula .formula")).toHaveAttribute(
     "aria-label",
+    "\\frac{-2}{\\left(s-2\\right)\\left(s-3\\right)}",
+  );
+  await page.getByText("展開形を表示", { exact: true }).click();
+  await expect(page.locator(".expanded-expression .formula")).toHaveAttribute(
+    "aria-label",
     "\\frac{-2}{s^{2}-5s+6}",
   );
   await page.getByText("テキスト式を表示", { exact: true }).click();
