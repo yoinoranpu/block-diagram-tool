@@ -82,8 +82,9 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
       ));
       const extra = required - (positions.get(b)!.x - positions.get(a)!.x);
       if (extra > 0)
-        for (let i = end; i < main.length; i++)
-          positions.get(main[i])!.x += extra;
+        for (let i = start + 1; i < main.length; i++)
+          positions.get(main[i])!.x +=
+            extra * Math.min(1, (i - start) / (end - start));
     }
   }
   const remaining = new Set(
@@ -135,10 +136,6 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
     const left = Math.min(a.x, b.x),
       right = Math.max(a.x, b.x);
     const y = lane(side, left - 50, right + 50);
-    if (component.size === 1) {
-      positions.set(seed, { x: (a.x + b.x) / 2, y, reversed: b.x < a.x });
-      continue;
-    }
     const path =
       from && to
         ? preferredPath(from, to, component).filter((id) => component.has(id))
@@ -147,6 +144,40 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
       ...path,
       ...[...component].filter((id) => !path.includes(id)),
     ];
+    const isBlock = (id: string) =>
+      byId.get(id)?.kind === "gain" || byId.get(id)?.kind === "integrator";
+    const startIndex = main.indexOf(from ?? ""),
+      endIndex = main.indexOf(to ?? "");
+    const reference = startIndex >= 0 && endIndex >= 0
+      ? main.slice(
+          Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1,
+        ).filter(isBlock)
+      : [];
+    const blocks = ordered.filter(isBlock);
+    const simpleChain = ordered.length === blocks.length &&
+      component.size === path.length &&
+      incoming.length === 1 && outgoing.length === 1;
+    if (simpleChain && reference.length) {
+      const columns = reference.map((id) => positions.get(id)!.x);
+      // Match columns by visual order, even when the signal travels backwards.
+      const reverse = b.x < a.x;
+      const center = (columns[0] + columns.at(-1)!) / 2;
+      const aligned = blocks.map((_, i) => blocks.length === columns.length
+        ? columns[reverse ? columns.length - 1 - i : i]
+        : center + (reverse ? -1 : 1) * (i - (blocks.length - 1) / 2) * 228);
+      // A connection into the middle of a block cannot always be centered
+      // without reversing the wire. Keep the spacious path in that case.
+      if (Math.min(...aligned) >= left && Math.max(...aligned) <= right) {
+        blocks.forEach((id, i) => positions.set(id, {
+          x: aligned[i], y, reversed: reverse,
+        }));
+        continue;
+      }
+    }
+    if (component.size === 1) {
+      positions.set(seed, { x: (a.x + b.x) / 2, y, reversed: b.x < a.x });
+      continue;
+    }
     const span = Math.max(
       Math.abs(b.x - a.x) - 228,
       (ordered.length - 1) * 228,
