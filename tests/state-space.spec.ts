@@ -164,7 +164,9 @@ test("並列状態の自己帰還を積分器の直下と次の状態経路の�
   }
   await page.getByRole("textbox", { name: "D", exact: true }).fill("0");
   await page.getByRole("button", { name: "伝達関数と状態変数線図を求める" }).click();
-  await expect(page.locator(".state-connected-node")).toHaveCount(13);
+  await expect(page.locator(".state-connected-node")).toHaveCount(16);
+  for (const id of ["A12", "A21", "D"])
+    await expect(page.locator(`.state-connected-node[data-node-id="${id}"] .node-expression`)).toHaveText("0");
   await expect(page.getByRole("alert")).toHaveCount(0);
   const point = async (id: string) => {
     const box = await page.locator(`.state-connected-node[data-node-id="${id}"] .node-body`).boundingBox();
@@ -180,4 +182,11 @@ test("並列状態の自己帰還を積分器の直下と次の状態経路の�
   expect(a22.y).toBeGreaterThan(x2.y);
   expect((await point("B2")).x).toBeCloseTo((await point("B1")).x, 1);
   await page.locator(".state-connected").screenshot({ path: info.outputPath("diagonal-feedback.png") });
+  await page.getByRole("button", { name: "ラベルで接続", exact: true }).click();
+  const zeroLabels = await page.locator(".state-diagram .node-expression").evaluateAll((nodes) =>
+    nodes.filter((n) => Array.from(n.childNodes)
+      .filter((child) => child.nodeType === Node.TEXT_NODE)
+      .map((child) => child.textContent).join("").trim() === "0").length);
+  expect(zeroLabels).toBe(3);
+
 });

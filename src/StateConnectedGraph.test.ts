@@ -34,16 +34,19 @@ const cases: StateSpaceInput[] = [
   },
 ];
 it.each(cases)(
-  "行列のすべての非ゼロ成分を配線し、配置後も接続と図形の分離を保つ",
+  "行列の0を含むすべての成分を配線し、配置後も接続と図形の分離を保つ",
   async (data) => {
     const model = stateConnectedGraph(data);
-    const nonzero = [...data.A.flat(), ...data.B, ...data.C, data.D].filter(
-      (v) => v !== "0",
-    ).length;
-    expect(model.nodes.filter((n) => n.kind === "gain")).toHaveLength(nonzero);
-    expect(model.edges).toHaveLength(nonzero * 2 + data.A.length + 1);
+    const coefficientCount = [...data.A.flat(), ...data.B, ...data.C, data.D].length;
+    expect(model.nodes.filter((n) => n.kind === "gain")).toHaveLength(coefficientCount);
+    expect(model.edges).toHaveLength(coefficientCount * 2 + data.A.length + 1);
     const out = layoutStateGraph(model);
     expect(out.edges).toHaveLength(model.edges.length);
+    for (const n of model.nodes.filter((n) => n.kind === "gain" && n.value === "0")) {
+      expect(out.children.some((v) => v.id === n.id)).toBe(true);
+      expect(model.edges.filter((e) => e.from === n.id || e.to === n.id)).toHaveLength(2);
+    }
+
     const baseline = out.children.find((n) => n.id === "u")!;
     for (const node of out.children)
       expect(node.y + node.height / 2).toBeGreaterThanOrEqual(baseline.y + baseline.height / 2);
@@ -256,4 +259,16 @@ it.each([2, 3])("%d状態の並列経路と自己帰還を列にそろえ、U字
       expect(input[j].y).toBeGreaterThanOrEqual(input[j - 1].y);
     }
   }
+});
+
+it("零伝達関数の単一ブロックも主経路上で0を表示できる", () => {
+  const layout = layoutStateGraph({
+    nodes: [{ id: "u", kind: "input", label: "u" },
+      { id: "zero", kind: "gain", label: "G", value: "0" },
+      { id: "y", kind: "output", label: "y" }],
+    edges: [{ id: "a", from: "u", to: "zero", signal: "u" },
+      { id: "b", from: "zero", to: "y", signal: "zero" }],
+  });
+  expect(layout.main).toEqual(["u", "zero", "y"]);
+  expect(layout.edges.every((e) => e.sections[0].bendPoints.length === 0)).toBe(true);
 });

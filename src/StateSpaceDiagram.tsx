@@ -62,7 +62,7 @@ function StateLabelDiagram({ data }: { data: StateSpaceInput }) {
         { source: "u", value: data.D, label: "D" },
       ],
     },
-  ].map((row) => ({ ...row, terms: row.terms.filter((t) => t.value !== "0") }));
+  ];
   let top = 24;
   const lanes = rows.map((row) => {
     const height = Math.max(100, row.terms.length * 66);

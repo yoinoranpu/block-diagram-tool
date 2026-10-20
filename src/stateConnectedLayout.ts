@@ -12,7 +12,9 @@ import type { Diagram, DiagramNode } from "./model";
 /** Our own content-sized signal-path layout: a straight forward path with side lanes. */
 export function layoutStateGraph(model: StateGraph): StateLayout {
   const byId = new Map(model.nodes.map((n) => [n.id, n]));
-  function preferredPath(start: string, target: string, allowed?: Set<string>) {
+  const zeroGains = new Set(model.nodes
+    .filter((n) => n.kind === "gain" && n.value === "0").map((n) => n.id));
+  function preferredPath(start: string, target: string, allowed?: Set<string>, allowZero = false) {
     let best: string[] = [],
       bestScore = -Infinity,
       visits = 0;
@@ -31,7 +33,7 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
       }
       for (const e of model.edges.filter((e) => e.from === id))
         if (
-          !seen.has(e.to) &&
+          !seen.has(e.to) && (allowZero || !zeroGains.has(e.to)) &&
           (!allowed || allowed.has(e.to) || e.to === target)
         )
           visit(e.to, [...path, e.to], new Set([...seen, e.to]));
@@ -39,7 +41,8 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
     visit(start, [start], new Set([start]));
     return best;
   }
-  const main = preferredPath("u", "y");
+  const nonzeroMain = preferredPath("u", "y");
+  const main = nonzeroMain.length ? nonzeroMain : preferredPath("u", "y", undefined, true);
   const size = (n: StateNode) =>
     n.kind === "branch"
       ? { width: 68, height: 16 }
@@ -101,7 +104,7 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
   const pendingLoops = new Set(localLoops.map((n) => n.id));
   const remaining = new Set(
     model.nodes
-      .filter((n) => !positions.has(n.id) && !pendingLoops.has(n.id))
+      .filter((n) => !positions.has(n.id) && !pendingLoops.has(n.id) && !zeroGains.has(n.id))
       .map((n) => n.id),
   );
   const lanes: { side: number; row: number; left: number; right: number }[] =
@@ -237,6 +240,21 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
     );
   }
   placeLocalLoops();
+  // Zero gains remain visible and wired, without displacing nonzero forward
+  // paths or merging otherwise independent state rows.
+  for (const id of zeroGains) {
+    if (positions.has(id)) continue;
+    const incoming = model.edges.find((e) => e.to === id);
+    const outgoing = model.edges.find((e) => e.from === id);
+    const a = incoming && positions.get(incoming.from);
+    const b = outgoing && positions.get(outgoing.to);
+    if (!a || !b) continue;
+    positions.set(id, {
+      x: (a.x + b.x) / 2,
+      y: lane(1, Math.min(a.x, b.x) - 50, Math.max(a.x, b.x) + 50, Math.max(a.y, b.y)),
+      reversed: b.x < a.x,
+    });
+  }
   const diagram: Diagram = {
     nodes: model.nodes.map((n) => {
       const p = positions.get(n.id)!;
@@ -249,7 +267,10 @@ export function layoutStateGraph(model: StateGraph): StateLayout {
         ...p,
       } as DiagramNode;
     }),
-    edges: model.edges.map((e) => ({ ...e, sign: 1 as const })),
+    edges: [...model.edges]
+      .sort((a, b) => Number(zeroGains.has(a.from) || zeroGains.has(a.to))
+        - Number(zeroGains.has(b.from) || zeroGains.has(b.to)))
+      .map((e) => ({ ...e, sign: 1 as const })),
   };
   const routes = routeEdges(diagram);
   if (routes.some((r) => r.obstructed))
