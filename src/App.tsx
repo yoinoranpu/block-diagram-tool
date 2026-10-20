@@ -22,6 +22,7 @@ type Saved = {
 };
 type Generated = {
   tex: string;
+  expandedTex: string;
   candidates: Candidate[];
   limitations: string[];
 };
@@ -392,8 +393,8 @@ export default function App() {
         const v = {
           ...copiedNode.current,
           id: crypto.randomUUID(),
-          x: Math.min(920, copiedNode.current.x + offset),
-          y: Math.min(560, copiedNode.current.y + offset),
+          x: Math.min(9930, copiedNode.current.x + offset),
+          y: Math.min(9945, copiedNode.current.y + offset),
           label: (copiedNode.current.label + " コピー").slice(0, 40),
         };
         change({ ...diagram, nodes: [...diagram.nodes, v] });
@@ -757,8 +758,8 @@ export default function App() {
                                 const c = {
                                   ...n,
                                   id: crypto.randomUUID(),
-                                  x: Math.min(920, n.x + 45),
-                                  y: Math.min(560, n.y + 65),
+                                  x: Math.min(9930, n.x + 45),
+                                  y: Math.min(9945, n.y + 65),
                                   label: n.label + " コピー",
                                 };
                                 change({
@@ -818,8 +819,8 @@ export default function App() {
                               aria-label={`要素を${t}へ移動`}
                               onClick={() =>
                                 updateNode({
-                                  x: Math.max(70, Math.min(930, n.x + x)),
-                                  y: Math.max(55, Math.min(565, n.y + y)),
+                                  x: Math.max(70, Math.min(9930, n.x + x)),
+                                  y: Math.max(55, Math.min(9945, n.y + y)),
                                 })
                               }
                             >
@@ -942,6 +943,16 @@ export default function App() {
                       <span>G(s) =</span>
                       <Formula tex={formulaTex} />
                     </div>
+                    <details className="expanded-expression">
+                      <summary>展開形を表示</summary>
+                      <Formula
+                        tex={
+                          tab === "diagram"
+                            ? current!.expandedTex
+                            : currentGenerated!.expandedTex
+                        }
+                      />
+                    </details>
                     <details className="text-expression">
                       <summary>テキスト式を表示</summary>
                       <code>
@@ -1165,15 +1176,6 @@ export default function App() {
           <p>
             無料・ログイン不要。AI
             APIや外部計算サーバーは使いません。自動保存はこのブラウザ内のみです。重要な図はJSONで保存してください。
-          </p>
-          <p>
-            <a
-              href="./third-party-notices.txt"
-              target="_blank"
-              rel="noreferrer"
-            >
-              利用ライブラリ・ライセンス
-            </a>
           </p>
         </footer>
       </main>

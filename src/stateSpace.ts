@@ -70,6 +70,7 @@ export function stateSpace(input: StateSpaceInput): StateSpaceResult {
   return {
     value: displayFraction(value),
     tex: latex(value),
+    expandedTex: latex(value, true),
     expression: text(value),
     conditions: [...conditions],
     determinant: text(denominator),

@@ -1,4 +1,4 @@
-import { arrangeIntegrator } from "./graphTools";
+import { arrangeDiagram } from "./graphTools";
 import { normalizeFormula } from "./normalizeInput";
 import { buildLearning, type LearningStep } from "./learning";
 import nerdamer from "nerdamer/all.js";
@@ -109,11 +109,57 @@ function polynomialTex(source: string) {
       .join("") || "0"
   );
 }
-export const latex = (value: Fraction) => {
-  const a = displayFraction(value);
-  return a.d === "1"
-    ? polynomialTex(a.n)
-    : `\\frac{${polynomialTex(a.n)}}{${polynomialTex(a.d)}}`;
+function factoredPolynomialTex(source: string) {
+  const expanded = polynomialTex(source);
+  if (source.length > 1000) return expanded;
+  try {
+    const factored = nerdamer.factor(source).toString();
+    if (
+      !factored.includes("(") ||
+      minus(polynomial(source), polynomial(factored)).size
+    )
+      return expanded;
+    let depth = 0,
+      start = 0;
+    const pieces: string[] = [];
+    for (let i = 0; i < factored.length; i++) {
+      if (factored[i] === "(") depth++;
+      if (factored[i] === ")") depth--;
+      if (factored[i] === "*" && depth === 0) {
+        pieces.push(factored.slice(start, i));
+        start = i + 1;
+      }
+    }
+    pieces.push(factored.slice(start));
+    if (pieces.length < 2 && !/\)\^[2-9]/.test(factored)) return expanded;
+    return pieces
+      .flatMap((piece) =>
+        piece.startsWith("-(") ? ["-1", piece.slice(1)] : [piece],
+      )
+      .map((piece) => {
+        const m = piece.match(/^\((.*)\)(?:\^(\d+))?$/);
+        return m
+          ? `\\left(${polynomialTex(m[1])}\\right)${m[2] ? `^{${m[2]}}` : ""}`
+          : polynomial(piece).size > 1
+            ? `\\left(${polynomialTex(piece)}\\right)`
+            : polynomialTex(piece);
+      })
+      .sort((a, b) =>
+        a.startsWith("\\left") === b.startsWith("\\left")
+          ? a.localeCompare(b)
+          : a.startsWith("\\left")
+            ? 1
+            : -1,
+      )
+      .join("");
+  } catch {
+    return expanded;
+  }
+}
+export const latex = (value: Fraction, expanded = false) => {
+  const a = displayFraction(value),
+    render = expanded ? polynomialTex : factoredPolynomialTex;
+  return a.d === "1" ? render(a.n) : `\\frac{${render(a.n)}}{${render(a.d)}}`;
 };
 export const equal = (a: Fraction, b: Fraction) =>
   zero(`(${a.n})*(${b.d})-(${b.n})*(${a.d})`);
@@ -219,6 +265,7 @@ export function transfer(num: string, den: string): Fraction {
 export type Analysis = {
   value: Fraction;
   tex: string;
+  expandedTex: string;
   expression: string;
   equations: string[];
   derivation: string[];
@@ -352,6 +399,7 @@ export function solve(diagram: Diagram, includeLearning = true): Analysis {
     })(),
     value: displayFraction(result),
     tex: latex(result),
+    expandedTex: latex(result, true),
     expression: text(result),
     equations,
     derivation,
@@ -423,6 +471,7 @@ export function generate(
 ): {
   original: Fraction;
   tex: string;
+  expandedTex: string;
   candidates: Candidate[];
   limitations: string[];
 } {
@@ -568,11 +617,17 @@ export function generate(
     accept(
       "積分器による構成",
       "可制御正準形の積分器連鎖です。分母を最高次係数で正規化し、状態からの帰還と出力の重みを構成します。",
-      arrangeIntegrator(d) ?? d,
+      arrangeDiagram(d),
     );
   } else
     limitations.push(
       "積分器構成：初版では分母1〜3次のプロパーな有理関数に対応します。高次式の計算・単一ブロック生成は利用できます。",
     );
-  return { original, tex: latex(original), candidates, limitations };
+  return {
+    original,
+    tex: latex(original),
+    expandedTex: latex(original, true),
+    candidates,
+    limitations,
+  };
 }

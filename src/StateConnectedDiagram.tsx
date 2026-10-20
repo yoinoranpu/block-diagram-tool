@@ -1,13 +1,11 @@
-import ELK from "elkjs/lib/elk-api.js";
-import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
 import { useEffect, useMemo, useRef, useState, useId } from "react";
-import type { ElkNode, ElkPoint } from "elkjs";
+import type { StateLayout, LayoutPoint } from "./StateConnectedGraph";
 import type { StateSpaceInput } from "./stateSpaceModel";
 import { stateConnectedGraph } from "./StateConnectedGraph";
 import { stateSignalLabel } from "./stateNotation";
 import { downloadDiagram } from "./exportDiagram";
-function simplify(points: ElkPoint[]) {
-  const result: ElkPoint[] = [];
+function simplify(points: LayoutPoint[]) {
+  const result: LayoutPoint[] = [];
   for (const p of points) {
     if (result.at(-1)?.x === p.x && result.at(-1)?.y === p.y) continue;
     while (result.length >= 2) {
@@ -30,7 +28,7 @@ export function StateConnectedDiagram({
 }) {
   const key = JSON.stringify(data),
     model = useMemo(() => stateConnectedGraph(data), [key]);
-  const [layout, setLayout] = useState<{ key: string; graph: ElkNode }>(),
+  const [layout, setLayout] = useState<{ key: string; graph: StateLayout }>(),
     [error, setError] = useState(""),
     [scale, setScale] = useState(1),
     [exportError, setExportError] = useState("");
@@ -41,51 +39,27 @@ export function StateConnectedDiagram({
   useEffect(() => {
     setError("");
     setScale(1);
-    let worker: Worker;
-    let elk: InstanceType<typeof ELK>;
-    let active = true;
-    try {
-      worker = new Worker(elkWorkerUrl);
-      elk = new ELK({ workerFactory: () => worker });
-    } catch {
-      setError(
-        "配置エンジンを起動できませんでした。ラベル接続表示をご利用ください。",
-      );
-      return;
-    }
+    const worker = new Worker(
+      new URL("./stateLayout.worker.ts", import.meta.url),
+      { type: "module" },
+    );
     const timeout = setTimeout(() => {
-      active = false;
       worker.terminate();
-      setError(
-        "線図の配置を15秒で中止しました。ラベル接続表示をご利用ください。",
-      );
+      setError("配置を15秒で中止しました。ラベル接続表示をご利用ください。");
     }, 15000);
-    worker.addEventListener("error", () => {
+    worker.onmessage = (e) => {
       clearTimeout(timeout);
-      if (active)
-        setError(
-          "配置エンジンでエラーが発生しました。ラベル接続表示をご利用ください。",
-        );
-      active = false;
+      if (e.data.error) setError(e.data.error);
+      else setLayout({ key, graph: e.data.graph });
       worker.terminate();
-    });
-    elk
-      .layout(model.graph)
-      .then((graph) => {
-        clearTimeout(timeout);
-        if (active) setLayout({ key, graph });
-        worker.terminate();
-      })
-      .catch(() => {
-        clearTimeout(timeout);
-        if (active)
-          setError(
-            "線図を配置できませんでした。ラベル接続表示をご利用ください。",
-          );
-        worker.terminate();
-      });
+    };
+    worker.onerror = () => {
+      clearTimeout(timeout);
+      setError("配置を完了できませんでした。ラベル接続表示をご利用ください。");
+      worker.terminate();
+    };
+    worker.postMessage(model);
     return () => {
-      active = false;
       clearTimeout(timeout);
       worker.terminate();
     };
@@ -242,8 +216,8 @@ export function StateConnectedDiagram({
                       .map((port) => (
                         <text
                           key={port.id}
-                          x={(port.x ?? 0) - 9}
-                          y={(port.y ?? 0) - 6}
+                          x={port.signX ?? (port.x ?? 0) - 9}
+                          y={port.signY ?? (port.y ?? 0) - 6}
                           textAnchor="middle"
                           fontSize="11"
                         >
@@ -257,22 +231,22 @@ export function StateConnectedDiagram({
                       x="0"
                       y="0"
                       width={w}
-                      height="60"
+                      height={h}
                       rx="5"
                       className="node-body"
                     />
                     <text
                       x={w / 2}
-                      y="20"
+                      y="32"
                       textAnchor="middle"
                       className="node-expression"
                     >
                       1
                     </text>
-                    <path d={`M20 30H${w - 20}`} stroke="#607991" />
+                    <path d={`M20 43H${w - 20}`} stroke="#607991" />
                     <text
                       x={w / 2}
-                      y="52"
+                      y="66"
                       textAnchor="middle"
                       className="node-expression"
                     >
@@ -280,7 +254,7 @@ export function StateConnectedDiagram({
                     </text>
                     <text
                       x={w / 2}
-                      y="82"
+                      y="-10"
                       textAnchor="middle"
                       className="node-label"
                     >
@@ -307,7 +281,7 @@ export function StateConnectedDiagram({
                     </text>
                     <text
                       x={w / 2}
-                      y="38"
+                      y="58"
                       textAnchor="middle"
                       className="node-expression"
                       textLength={
@@ -331,22 +305,6 @@ export function StateConnectedDiagram({
                     </text>
                   </>
                 )}
-                {model.edges.filter((e) => e.from === node.id).length > 1 &&
-                  !graph.edges?.some(
-                    (edge) =>
-                      model.edges.find((e) => e.id === edge.id)?.from ===
-                        node.id && (edge.junctionPoints?.length ?? 0) > 0,
-                  ) && (
-                    <circle
-                      cx={w}
-                      cy={
-                        p.ports?.find((port) => port.id === `${node.id}-out`)
-                          ?.y ?? h / 2
-                      }
-                      r="3"
-                      fill="#334d68"
-                    />
-                  )}
               </g>
             );
           })}

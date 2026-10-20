@@ -333,6 +333,10 @@ export function StateSpaceWorkspace() {
                 <span>G(s) =</span>
                 <Formula tex={result.tex} />
               </div>
+              <details className="expanded-expression">
+                <summary>展開形を表示</summary>
+                <Formula tex={result.expandedTex} />
+              </details>
               <details className="text-expression">
                 <summary>テキスト式を表示</summary>
                 <code>{result.expression}</code>

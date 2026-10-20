@@ -1,3 +1,4 @@
+import { layoutStateGraph } from "./stateConnectedLayout";
 import type { Diagram } from "./model";
 export type WiringIssue = { nodeId?: string; message: string };
 export function inspectWiring(d: Diagram): WiringIssue[] {
@@ -96,6 +97,58 @@ export function traceSignal(
 }
 export const snap = (n: number) => Math.round(n / 20) * 20;
 export function arrangeDiagram(d: Diagram): Diagram {
+  const source = d.nodes.filter((n) => n.kind === "input"),
+    target = d.nodes.filter((n) => n.kind === "output");
+  if (
+    source.length === 1 &&
+    target.length === 1 &&
+    shortestPath(d, source[0].id, target[0].id).length
+  ) {
+    const ids = new Map(
+      d.nodes.map((n, i) => [
+        n.id,
+        n.kind === "input" ? "u" : n.kind === "output" ? "y" : `node-${i}`,
+      ]),
+    );
+    try {
+      const layout = layoutStateGraph({
+        nodes: d.nodes.map((n) => ({
+          id: ids.get(n.id)!,
+          kind:
+            n.kind === "block"
+              ? n.num.trim() === "1" && n.den.trim() === "s"
+                ? ("integrator" as const)
+                : ("gain" as const)
+              : n.kind,
+          label: n.label,
+          value: n.num,
+        })),
+        edges: d.edges.map((e) => ({
+          id: e.id,
+          from: ids.get(e.from)!,
+          to: ids.get(e.to)!,
+          signal: ids.get(e.from)!,
+        })),
+      });
+      return {
+        ...d,
+        nodes: d.nodes.map((n) => {
+          const p = layout.children.find((p) => p.id === ids.get(n.id))!;
+          const ports = p.ports;
+          const out = ports.find((port) => port.id === `${p.id}-out`);
+          return {
+            ...n,
+            x: p.x + p.width / 2,
+            y: p.y + p.height / 2,
+            reversed: out ? out.x === 0 : false,
+          };
+        }),
+      };
+    } catch {
+      /* Keep the bounded fallback for disconnected or unusually dense graphs. */
+    }
+  }
+
   const integrator = arrangeIntegrator(d);
   if (integrator) return integrator;
   const input = d.nodes.find((n) => n.kind === "input"),
@@ -207,8 +260,8 @@ export function insertOnEdge(
   const width = kind === "block" ? 64 : 34,
     height = kind === "block" ? 43 : 23;
   const candidates = Array.from({ length: 45 * 26 }, (_, i) => ({
-    x: 60 + (i % 45) * 20,
-    y: 50 + Math.floor(i / 45) * 20,
+    x: Math.max(60, Math.min(9940, node.x + ((i % 45) - 22) * 20)),
+    y: Math.max(50, Math.min(9950, node.y + (Math.floor(i / 45) - 13) * 20)),
   }));
   candidates.sort(
     (a, b) =>

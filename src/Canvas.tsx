@@ -270,8 +270,8 @@ export function Canvas({
                     const copy = {
                       ...activeBlock,
                       id: crypto.randomUUID(),
-                      x: Math.min(920, activeBlock.x + 40),
-                      y: Math.min(560, activeBlock.y + 40),
+                      x: Math.min(9930, activeBlock.x + 40),
+                      y: Math.min(9945, activeBlock.y + 40),
                       label: (activeBlock.label + " コピー").slice(0, 40),
                     };
                     change({ ...diagram, nodes: [...diagram.nodes, copy] });
@@ -504,10 +504,10 @@ export function Canvas({
           </defs>
           <rect
             className="export-hide"
-            x="-3000"
-            y="-3000"
-            width="7000"
-            height="7000"
+            x="-10000"
+            y="-10000"
+            width="30000"
+            height="30000"
             fill={`url(#${gridId})`}
             pointerEvents="none"
           />
@@ -673,7 +673,10 @@ export function Canvas({
                     x: Math.max(
                       70,
                       Math.min(
-                        930,
+                        Math.min(
+                          9930,
+                          Math.max(930, ...diagram.nodes.map((n) => n.x + 500)),
+                        ),
                         snapping
                           ? snap(d.x + p.x - d.startX)
                           : Math.round(d.x + p.x - d.startX),
@@ -682,7 +685,10 @@ export function Canvas({
                     y: Math.max(
                       55,
                       Math.min(
-                        565,
+                        Math.min(
+                          9945,
+                          Math.max(565, ...diagram.nodes.map((n) => n.y + 500)),
+                        ),
                         snapping
                           ? snap(d.y + p.y - d.startY)
                           : Math.round(d.y + p.y - d.startY),
