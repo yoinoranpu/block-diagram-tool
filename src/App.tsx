@@ -290,7 +290,7 @@ export default function App() {
   const n = diagram.nodes.find((x) => x.id === selected),
     e = diagram.edges.find((x) => x.id === selected);
   const current = tab === "diagram" ? currentAnswer : undefined;
-  const formulaTex = tab === "diagram" ? current?.tex : currentGenerated?.tex;
+  const formulaTex = tab === "diagram" ? current?.expandedTex : currentGenerated?.expandedTex;
   const answerFraction =
     tab === "diagram"
       ? current?.value
@@ -952,12 +952,12 @@ export default function App() {
                       <Formula tex={formulaTex} />
                     </div>
                     <details className="expanded-expression">
-                      <summary>展開形を表示</summary>
+                      <summary>因数形を表示</summary>
                       <Formula
                         tex={
                           tab === "diagram"
-                            ? current!.expandedTex
-                            : currentGenerated!.expandedTex
+                            ? current!.tex
+                            : currentGenerated!.tex
                         }
                       />
                     </details>

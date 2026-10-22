@@ -1431,33 +1431,6 @@ input[aria-invalid="true"] {
 .learning-step .canvas-scroll {
   height: 240px !important;
 }
-.inline-fraction {
-  display: flex;
-  flex-direction: column;
-  width: 116px;
-  gap: 1px;
-  background: white;
-}
-.inline-fraction input {
-  font:
-    16px Georgia,
-    serif;
-  min-width: 0;
-  width: 116px;
-  height: 24px;
-  min-height: 0;
-  border: 1px solid #9fbee9;
-  border-radius: 3px;
-  padding: 1px 4px;
-  text-align: center;
-  background: #f7fbff;
-}
-.inline-fraction input + input {
-  border-top-color: #568edb;
-}
-.editing-value {
-  visibility: hidden;
-}
 .node-actions {
   display: flex;
   gap: 5px;
@@ -1808,3 +1781,21 @@ main {
 .realization-matrix { display: flex; align-items: center; gap: 8px; padding: 10px 0; max-width: 100%; overflow-x: auto; }
 .realization-matrix > span:first-child { flex: 0 0 auto; }
 .realization-matrix .formula { flex: 0 0 auto; }
+
+.block-editor-popover {
+  position: fixed;
+  z-index: 30;
+  box-sizing: border-box;
+  width: min(300px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #abc6ea;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px #24334a26;
+}
+.block-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 14px; }
+.block-editor-popover label { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; }
+.block-editor-popover input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 40px; font-size: 16px; }
+.block-editor-popover p { margin: 10px 0 0; font-size: 11px; color: #657a94; }

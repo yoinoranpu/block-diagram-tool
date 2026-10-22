@@ -110,13 +110,11 @@ test("画像の例を整数係数とsの降べき順で表示する", async ({ p
     .getByRole("button", { name: "伝達関数と状態変数線図を求める" })
     .click();
   await expect(page.locator(".result-formula .formula")).toHaveAttribute(
-    "aria-label",
-    "\\frac{-2}{\\left(s-2\\right)\\left(s-3\\right)}",
+    "aria-label", "\\frac{-2}{s^{2}-5s+6}",
   );
-  await page.getByText("展開形を表示", { exact: true }).click();
+  await page.getByText("因数形を表示", { exact: true }).click();
   await expect(page.locator(".expanded-expression .formula")).toHaveAttribute(
-    "aria-label",
-    "\\frac{-2}{s^{2}-5s+6}",
+    "aria-label", "\\frac{-2}{\\left(s-2\\right)\\left(s-3\\right)}",
   );
   await page.getByText("テキスト式を表示", { exact: true }).click();
   await expect(page.locator(".text-expression code")).toHaveText(

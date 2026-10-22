@@ -1,5 +1,6 @@
+import { BlockEditor } from "./BlockEditor";
 import { ActionMenu } from "./ActionMenu";
-import { normalizeFormula, isUnityDenominator } from "./normalizeInput";
+import { isUnityDenominator } from "./normalizeInput";
 import { useRef, useState, useMemo, useLayoutEffect, useId } from "react";
 import {
   routeEdges,
@@ -114,12 +115,6 @@ export function Canvas({
   const activeBlock = diagram.nodes.find(
     (n) => n.id === selected && n.kind === "block",
   );
-  function updateBlock(id: string, num: string, den: string) {
-    change({
-      ...diagram,
-      nodes: diagram.nodes.map((n) => (n.id === id ? { ...n, num, den } : n)),
-    });
-  }
   const structure = diagram.nodes.map((n) => n.id).join("|");
   useLayoutEffect(() => {
     const el = container.current;
@@ -217,7 +212,7 @@ export function Canvas({
       return;
     }
     if (!wire) return;
-    if (diagram.edges.length >= 32) return;
+    if (diagram.edges.length >= 64) return;
     if (diagram.edges.some((e) => e.from === wire && e.to === n.id)) {
       setWire(undefined);
       return;
@@ -234,6 +229,14 @@ export function Canvas({
   }
   return (
     <div className={`canvas-shell ${readonly ? "readonly" : ""}`}>
+      {activeBlock && !readonly && !detailsOpen && !moving && (
+        <BlockEditor block={activeBlock} svg={svg}
+          cameraKey={JSON.stringify([camera, size])}
+          close={() => select("")}
+          change={(patch) => change({ ...diagram, nodes: diagram.nodes.map((n) =>
+            n.id === activeBlock.id ? { ...n, ...patch } : n) })}
+        />
+      )}
       {!readonly && (
         <div className="node-actions selection-bar">
           {activeBlock && !detailsOpen ? (
@@ -264,9 +267,9 @@ export function Canvas({
                   左右反転
                 </button>
                 <button
-                  disabled={diagram.nodes.length >= 16}
+                  disabled={diagram.nodes.length >= 32}
                   onClick={() => {
-                    if (diagram.nodes.length >= 16) return;
+                    if (diagram.nodes.length >= 32) return;
                     const copy = {
                       ...activeBlock,
                       id: crypto.randomUUID(),
@@ -298,8 +301,8 @@ export function Canvas({
                 </button>
                 {openDetails && <button onClick={openDetails}>詳細設定</button>}
               </ActionMenu>
-              <button aria-label="編集欄を閉じる" onClick={() => select("")}>
-                完了
+              <button aria-label="ブロックの選択を解除" onClick={() => select("")}>
+                選択解除
               </button>
             </>
           ) : activeEdge ? (
@@ -319,7 +322,7 @@ export function Canvas({
                   <button
                     key={kind}
                     disabled={
-                      diagram.nodes.length >= 16 || diagram.edges.length >= 32
+                      diagram.nodes.length >= 32 || diagram.edges.length >= 64
                     }
                     onClick={() => {
                       const route = routes.find((r) => r.edge.id === selected)!;
@@ -643,7 +646,7 @@ export function Canvas({
                   e.button !== 0 ||
                   readonly ||
                   points.current.size > 1 ||
-                  (e.target as Element).closest(".port,.inline-block-editor")
+                  (e.target as Element).closest(".port")
                 )
                   return;
                 e.stopPropagation();
@@ -736,7 +739,7 @@ export function Canvas({
                   <text
                     y={isUnityDenominator(n.den) ? 14 : 5}
                     textAnchor="middle"
-                    className={`node-expression ${isUnityDenominator(n.den) ? "block-gain" : ""} ${selected === n.id && !readonly ? "editing-value" : ""}`}
+                    className={`node-expression ${isUnityDenominator(n.den) ? "block-gain" : ""} `}
                   >
                     {!n.num.trim()
                       ? "未入力"
@@ -747,7 +750,7 @@ export function Canvas({
                   {!isUnityDenominator(n.den) && (
                     <>
                       <line
-                        className={`fraction-bar ${selected === n.id && !readonly ? "editing-value" : ""}`}
+                        className={`fraction-bar `}
                         x1="-45"
                         y1="13"
                         x2="45"
@@ -757,7 +760,7 @@ export function Canvas({
                       <text
                         y="31"
                         textAnchor="middle"
-                        className={`node-expression ${selected === n.id && !readonly ? "editing-value" : ""}`}
+                        className={`node-expression `}
                       >
                         {!n.den.trim()
                           ? "未入力"
@@ -766,72 +769,6 @@ export function Canvas({
                             : n.den}
                       </text>
                     </>
-                  )}
-                  {selected === n.id && !readonly && (
-                    <foreignObject
-                      className="inline-block-editor export-hide"
-                      x="-60"
-                      y="-10"
-                      width="120"
-                      height="52"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        e.stopPropagation();
-                        if (e.key === "Escape") {
-                          select("");
-                        }
-                      }}
-                    >
-                      <div className="inline-fraction">
-                        <input
-                          aria-label="選択ブロックの分子"
-                          value={n.num}
-                          maxLength={300}
-                          autoCapitalize="off"
-                          spellCheck={false}
-                          onChange={(e) =>
-                            updateBlock(
-                              n.id,
-                              (e.nativeEvent as InputEvent).isComposing
-                                ? e.target.value
-                                : normalizeFormula(e.target.value),
-                              n.den,
-                            )
-                          }
-                          onCompositionEnd={(e) =>
-                            updateBlock(
-                              n.id,
-                              normalizeFormula(e.currentTarget.value),
-                              n.den,
-                            )
-                          }
-                        />
-                        <input
-                          aria-label="選択ブロックの分母"
-                          value={n.den}
-                          placeholder="分母（省略可）"
-                          maxLength={300}
-                          autoCapitalize="off"
-                          spellCheck={false}
-                          onChange={(e) =>
-                            updateBlock(
-                              n.id,
-                              n.num,
-                              (e.nativeEvent as InputEvent).isComposing
-                                ? e.target.value
-                                : normalizeFormula(e.target.value),
-                            )
-                          }
-                          onCompositionEnd={(e) =>
-                            updateBlock(
-                              n.id,
-                              n.num,
-                              normalizeFormula(e.currentTarget.value),
-                            )
-                          }
-                        />
-                      </div>
-                    </foreignObject>
                   )}
                   <title>
                     {n.label}: ({n.num}) / ({n.den.trim() || "1"})
