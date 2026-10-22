@@ -332,11 +332,11 @@ export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => 
               </div>
               <div className="result-formula">
                 <span>G(s) =</span>
-                <Formula tex={result.tex} />
+                <Formula tex={result.expandedTex} />
               </div>
               <details className="expanded-expression">
-                <summary>展開形を表示</summary>
-                <Formula tex={result.expandedTex} />
+                <summary>因数形を表示</summary>
+                <Formula tex={result.tex} />
               </details>
               <details className="text-expression">
                 <summary>テキスト式を表示</summary>

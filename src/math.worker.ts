@@ -40,7 +40,7 @@ self.onmessage = (
                   b = transfer(otherNum, otherDen);
                 return {
                   equal: equal(a, b),
-                  tex: latex(b),
+                  tex: latex(b, true),
                   conditions: b.conditions ?? [],
                 };
               })();
