@@ -1,3 +1,5 @@
+import { PhysicalExamplePicker, PhysicalExampleGuide } from "./PhysicalExamplePicker";
+import type { PhysicalExample } from "./physicalExamples";
 import { RealizationPanel } from "./RealizationPanel";
 import { StateSpaceWorkspace } from "./StateSpaceWorkspace";
 import { ActionMenu } from "./ActionMenu";
@@ -266,6 +268,7 @@ export default function App() {
     key: string;
   }>();
   const [candidateIndex, setCandidateIndex] = useState(0);
+  const [physicalGuide, setPhysicalGuide] = useState<{ example: PhysicalExample; mode: string; key: string }>();
   const file = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLElement>(null);
   const requestId = useRef(0);
@@ -275,6 +278,8 @@ export default function App() {
   }>();
   const diagramKey = JSON.stringify(diagram),
     formulaKey = JSON.stringify([num, den]);
+  const activePhysicalGuide = physicalGuide?.mode === tab && physicalGuide.key ===
+    (tab === "diagram" ? diagramKey : formulaKey) ? physicalGuide.example : undefined;
   const comparisonKey = JSON.stringify([
     diagramKey,
     formulaKey,
@@ -405,6 +410,32 @@ export default function App() {
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, [diagram, cursor, history, selected, tab]);
+  async function choosePhysical(example: PhysicalExample) {
+    setError("");
+    if (tab === "formula") {
+      setNum(example.num);
+      setDen(example.den);
+      setPhysicalGuide({ example, mode: "formula", key: JSON.stringify([example.num, example.den]) });
+      setNotice(`${example.title}の例題を読み込みました。`);
+      return;
+    }
+    const id = ++requestId.current;
+    setBusy(true);
+    try {
+      const d = await calculate<Diagram>("stateDiagram", {
+        state: example.state, options: { omitZero: true, omitOne: false },
+      });
+      if (id === requestId.current) {
+        change(d); select(""); setWire(undefined);
+        setPhysicalGuide({ example, mode: "diagram", key: JSON.stringify(d) });
+        setNotice(`${example.title}の例題を読み込みました。`);
+      }
+    } catch (e) {
+      if (id === requestId.current) setError((e as Error).message);
+    } finally {
+      if (id === requestId.current) setBusy(false);
+    }
+  }
   async function run() {
     const id = ++requestId.current;
     setBusy(true);
@@ -633,7 +664,9 @@ export default function App() {
                     >
                       新規線図
                     </button>
+                    <PhysicalExamplePicker compact disabled={busy} onChoose={choosePhysical} />
                   </div>
+                  {activePhysicalGuide && <PhysicalExampleGuide example={activePhysicalGuide} />}
                   <div className="editor-toolbar">
                     <div className="add-tools">
                       {(
@@ -909,6 +942,10 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  <div className="physical-formula-examples">
+                    <PhysicalExamplePicker disabled={busy} onChoose={choosePhysical} />
+                  </div>
+                  {activePhysicalGuide && <PhysicalExampleGuide example={activePhysicalGuide} />}
                   <p className="explanation">
                     単一ブロック・ゲイン分離・因数分解・積分器構成のうち、成立するものを表示します。生成後は線図から再計算し、元の式との一致を確認します。
                   </p>

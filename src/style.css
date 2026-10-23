@@ -1799,3 +1799,13 @@ main {
 .block-editor-popover label { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; }
 .block-editor-popover input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 40px; font-size: 16px; }
 .block-editor-popover p { margin: 10px 0 0; font-size: 11px; color: #657a94; }
+
+.physical-example-picker { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; max-width: 100%; }
+.physical-example-picker select { width: 220px; min-height: 40px; max-width: 100%; min-width: 0; font-size: 16px; }
+.physical-formula-examples { margin: 14px 0; }
+.physical-example-guide { margin: 12px 0; padding: 12px; border: 1px solid #dce6f3; border-radius: 8px; background: #f8fbff; font-size: 12px; }
+.physical-example-guide p { margin: 6px 0 0; line-height: 1.6; }
+.state-expression-help code { white-space: nowrap; }
+.examples > .physical-example-picker { flex: 0 0 auto; }
+.physical-example-picker.compact { flex-wrap: nowrap; }
+.physical-example-picker.compact select { width: 140px; min-height: 32px; }
