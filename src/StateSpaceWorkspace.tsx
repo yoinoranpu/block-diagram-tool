@@ -1,3 +1,5 @@
+import { PhysicalExamplePicker, PhysicalExampleGuide } from "./PhysicalExamplePicker";
+import type { PhysicalExample } from "./physicalExamples";
 import type { Diagram } from "./model";
 import { useEffect, useRef, useState } from "react";
 import { calculate } from "./mathClient";
@@ -56,6 +58,8 @@ export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => 
     },
     [],
   );
+  const [physical, setPhysical] = useState<PhysicalExample>();
+  const activePhysical = physical && JSON.stringify(physical.state) === key ? physical : undefined;
   const n = data.A.length;
   function resize(size: number) {
     setData({
@@ -101,6 +105,10 @@ export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => 
     return (
       <input
         aria-label={label}
+        type="text"
+        inputMode="text"
+        autoCorrect="off"
+        placeholder="例：-R/L"
         value={value}
         maxLength={300}
         autoCapitalize="off"
@@ -208,6 +216,10 @@ export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => 
             初期値0・1入力1出力。状態数1〜3、文字係数・分数に対応。係数にsは使えません。掛け算は
             *。空欄には0を入力してください。
           </p>
+          <p className="field-hint state-expression-help">
+            入力例：<code>-R/L</code>、<code>1/(L*C)</code>、<code>K</code>。
+            係数名はR・L・C・Kなどの半角英字1文字で、大文字・小文字を区別します。分母が積なら <code>1/(L*C)</code> のように括弧で囲みます。
+          </p>
           <div className="state-actions">
             <label>
               状態数{" "}
@@ -242,7 +254,13 @@ export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => 
             >
               3次の例題
             </button>
+            <PhysicalExamplePicker disabled={busy} onChoose={(example) => {
+              setData(structuredClone(example.state));
+              setPhysical(example);
+              setError("");
+            }} />
           </div>
+          {activePhysical && <PhysicalExampleGuide example={activePhysical} open />}
           <div className="matrix-fields">
             <fieldset>
               <legend>
