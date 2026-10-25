@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>入力データ・保存・プライバシーについて｜制御ブロック線図ノート</title>
+  <meta name="description" content="制御ブロック線図ノートの入力データ、自動保存、外部通信の扱いを説明します。数式・線図・行列の計算と保存はブラウザ内で行います。" />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://yoinoranpu.github.io/block-diagram-tool/privacy.html" />
+  <link rel="stylesheet" href="./site.css" />
+</head>
+<body class="info-page">
+<header><a href="./">制御ブロック線図ノート</a><a href="./guide.html">使い方・対応範囲</a></header>
+<main>
+  <h1>入力データ・保存・プライバシーについて</h1>
+  <h2>入力する数式・ブロック線図・行列</h2>
+  <p>計算は利用中のブラウザで行います。アプリには、入力した数式・ブロック線図・状態空間の行列を計算サーバーやAI APIへ送信する処理はありません。アカウント登録は不要です。</p>
+  <h2>自動保存とファイルの保存</h2>
+  <p>作業内容の自動保存にはブラウザのlocalStorageを使用します。同じ端末でもブラウザが異なると共有されません。ブラウザのサイトデータを削除すると自動保存された内容も削除されます。シークレットモードでは保存が維持されない場合があります。</p>
+  <p>JSON・PNG・SVGの書き出しは、端末へのファイル保存です。JSONの読み込みもブラウザ内で処理します。数式のコピーボタンはブラウザのクリップボード機能を利用します。</p>
+  <h2>サイトの配信と外部リンク</h2>
+  <p>サイトはGitHub Pagesで配信しています。ページやファイルを取得する際、ホスティング事業者にはIPアドレス等の通信情報が渡ります。事業者側の取り扱いは<a href="https://docs.github.com/ja/site-policy/privacy-policies/github-general-privacy-statement">GitHubのプライバシーに関する声明</a>を確認してください。</p>
+  <p>アプリ内に広告配信やアクセス解析用のスクリプトは導入していません。外部リンクを開いた場合は、リンク先のサービスの取り扱いが適用されます。</p>
+  <h2>不具合報告</h2>
+  <p><a href="https://github.com/yoinoranpu/block-diagram-tool/issues">GitHubの不具合報告・ご意見</a>に投稿した情報は公開されます。共有する数式・JSON・画像に、個人情報や公開したくない情報が含まれていないか確認してください。</p>
+  <p><a class="start-link" href="./">計算画面へ戻る</a></p>
+</main>
+<footer><a href="./">計算画面</a> · <a href="./guide.html">使い方・対応範囲</a></footer>
+</body>
+</html>

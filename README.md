@@ -2,6 +2,10 @@
 
 制御工学を学ぶ学生向けの、日本語・無料・ログイン不要のWebアプリです。線図から伝達関数を求め、伝達関数から複数の等価線図を生成します。演算・保存はブラウザ内で完結します。
 
+公開サイト：<https://yoinoranpu.github.io/block-diagram-tool/>
+
+検索向けの公開設定とGoogle Search Consoleへの登録手順は [docs/検索公開.md](docs/検索公開.md) を参照してください。
+
 ## 開発
 
 Node.js 22.12以上（検証：24.19.0）、npm 11を使用します。
@@ -58,7 +62,7 @@ E2EはPlaywrightと `/usr/bin/chromium` を使用します。別の環境では 
 
 ## 公開
 
-`npm run build` の生成物 `dist/` を静的ホスティングに配置できます。公開操作はまだ行っていません。パッケージはビルド時に取得し、ブラウザ実行時にCDN・AI API等へ接続しません。
+`npm run build` の生成物 `dist/` を静的ホスティングに配置できます。公開先はGitHub Pagesです。パッケージはビルド時に取得し、ブラウザ実行時にCDN・AI API等へ接続しません。
 
 企画・実装範囲は [docs/企画書.md](docs/企画書.md) を参照してください。
 

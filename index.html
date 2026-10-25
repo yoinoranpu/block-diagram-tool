@@ -1,1 +1,65 @@
-<!doctype html><html lang="ja"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="theme-color" content="#f6f8fc"/><title>制御ブロック線図ノート</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f8fc" />
+    <title>ブロック線図・伝達関数・状態空間表現の計算｜制御ブロック線図ノート</title>
+    <meta name="description" content="制御工学のブロック線図から伝達関数を厳密計算。等価な線図の生成、状態空間表現との変換、文字係数・分数に対応。無料・ログイン不要でPC・スマホから利用できます。" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://yoinoranpu.github.io/block-diagram-tool/" />
+    <link rel="sitemap" type="application/xml" href="https://yoinoranpu.github.io/block-diagram-tool/sitemap.xml" />
+    <link rel="stylesheet" href="/site.css" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:site_name" content="制御ブロック線図ノート" />
+    <meta property="og:title" content="ブロック線図・伝達関数・状態空間表現の計算" />
+    <meta property="og:description" content="制御工学の学習に。文字係数を含む伝達関数の計算・等価線図の生成・状態空間表現との変換を、無料・ログイン不要で。" />
+    <meta property="og:url" content="https://yoinoranpu.github.io/block-diagram-tool/" />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "制御ブロック線図ノート",
+        "url": "https://yoinoranpu.github.io/block-diagram-tool/",
+        "description": "制御工学のブロック線図・伝達関数・状態空間表現を扱う日本語の学習用Webアプリ。",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "browserRequirements": "JavaScript enabled",
+        "inLanguage": "ja",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <section class="loading-intro">
+        <h1>ブロック線図・伝達関数・状態空間表現の計算</h1>
+        <p>制御ブロック線図ノートを読み込んでいます。</p>
+        <noscript><p>計算と線図の編集にはJavaScriptが必要です。<a href="./guide.html">使い方と対応範囲</a>もご覧いただけます。</p></noscript>
+      </section>
+    </div>
+    <footer class="site-information" aria-label="サイトについて">
+      <h2>制御工学のブロック線図を、ブラウザで作成・計算</h2>
+      <p>制御ブロック線図ノートは、授業・課題の答え合わせや理解に使える日本語の学習用ツールです。無料・ログイン不要で、PC・スマートフォンから利用できます。</p>
+      <details>
+        <summary>できること・対応範囲</summary>
+        <ul>
+          <li>伝達関数ブロック・加算点・分岐点を接続し、直列・並列・フィードバックを含む線図の全体伝達関数を計算。</li>
+          <li>伝達関数から等価なブロック線図を生成し、線図からの再計算で一致を検証。</li>
+          <li>A・B・C・Dから伝達関数と状態変数線図を求め、伝達関数から状態空間表現へ変換。</li>
+          <li>文字係数・分数、RL・RC・RLC回路の例題、JSON保存・読込、PNG・SVG保存に対応。</li>
+        </ul>
+        <p>初期値0の連続時間・線形時不変・1入力1出力系を対象にしています。対応範囲や計算上限は<a href="./guide.html#limits">使い方の「対応範囲」</a>で確認できます。</p>
+      </details>
+      <nav aria-label="サイト案内">
+        <a href="./guide.html">使い方・対応範囲</a>
+        <a href="./privacy.html">データの扱い</a>
+        <a href="https://github.com/yoinoranpu/block-diagram-tool/issues">不具合の報告・ご意見</a>
+      </nav>
+    </footer>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
