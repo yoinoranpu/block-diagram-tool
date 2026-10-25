@@ -40,3 +40,63 @@ jobs:
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment
+      - name: Verify public sitemap and ownership file
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+          import xml.etree.ElementTree as ET
+
+          base = os.environ['SITE_URL'].rstrip('/') + '/'
+          rows = []
+
+          def fetch(url):
+              for attempt in range(6):
+                  try:
+                      request = urllib.request.Request(url, headers={'User-Agent': 'BlockDiagramPublicationCheck/1.0'})
+                      with urllib.request.urlopen(request, timeout=25) as response:
+                          status = response.status
+                          content_type = response.headers.get('Content-Type', '')
+                          body = response.read()
+                          rows.append((url, status, content_type))
+                          print(f'{url}: HTTP {status}; {content_type}')
+                          return body
+                  except (OSError, urllib.error.URLError) as error:
+                      if attempt == 5:
+                          raise
+                      print(f'Retrying {url}: {error}')
+                      time.sleep(10)
+
+          sitemap = fetch(base + 'sitemap.xml')
+          root = ET.fromstring(sitemap)
+          assert root.tag == '{http://www.sitemaps.org/schemas/sitemap/0.9}urlset', 'Invalid sitemap root'
+          urls = [entry.text for entry in root.findall('{*}url/{*}loc')]
+          assert urls == [base, base + 'guide.html', base + 'privacy.html'], f'Unexpected sitemap URLs: {urls}'
+          for url in urls:
+              assert b'<html' in fetch(url).lower(), f'Not an HTML page: {url}'
+          verification = 'google4e82542e7ab91bc0.html'
+          assert fetch(base + verification).decode().strip() == 'google-site-verification: ' + verification
+
+          robots_url = urllib.request.urljoin(base, '/robots.txt')
+          try:
+              with urllib.request.urlopen(robots_url, timeout=25) as response:
+                  robots = response.read().decode()
+                  print(f'{robots_url}: HTTP {response.status}\n{robots}')
+                  rows.append((robots_url, response.status, response.headers.get('Content-Type', '')))
+          except urllib.error.HTTPError as error:
+              if error.code != 404:
+                  raise
+              print(f'{robots_url}: HTTP 404 (no robots.txt)')
+              rows.append((robots_url, 404, 'No robots.txt'))
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('## Public publication check\n\n')
+              summary.write('Sitemap XML, all three page URLs, and the Google ownership file were verified.\n\n')
+              summary.write('| URL | HTTP | Content-Type |\n| --- | --- | --- |\n')
+              for url, status, content_type in rows:
+                  summary.write(f'| {url} | {status} | {content_type} |\n')
+          PY
