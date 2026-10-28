@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>フィードバックの伝達関数の求め方｜負帰還・正帰還の公式と例題｜制御ブロック線図ノート</title>
+<meta name="description" content="負帰還・正帰還の伝達関数を信号の式から導出。G(s)=2/(s+3)の例題で、分母の符号と単位フィードバックの計算を確認できます。"/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="https://yoinoranpu.github.io/block-diagram-tool/feedback.html" />
+<link rel="stylesheet" href="./site.css"/>
+<link rel="icon" type="image/png" sizes="48x48" href="./favicon-48.png"/>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg"/>
+<meta property="og:type" content="article"/><meta property="og:title" content="フィードバックの伝達関数：負帰還・正帰還の求め方"/>
+<meta property="og:description" content="負帰還・正帰還の伝達関数を信号の式から導出。G(s)=2/(s+3)の例題で、分母の符号と単位フィードバックの計算を確認できます。"/>
+<meta property="og:url" content="https://yoinoranpu.github.io/block-diagram-tool/feedback.html"/><meta property="og:image" content="https://yoinoranpu.github.io/block-diagram-tool/og-card.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+</head><body class="info-page">
+<header><a href="./">制御ブロック線図ノート</a><a href="./guide.html">使い方・対応範囲</a></header>
+<main><h1>フィードバックの伝達関数：負帰還・正帰還の求め方</h1>
+<p>負帰還では <code>T(s)=G(s)/(1+G(s)H(s))</code>、正帰還では <code>T(s)=G(s)/(1−G(s)H(s))</code> です。ここで <code>G(s)</code> は順方向、<code>H(s)</code> は戻り経路の伝達関数です。加算点の符号から式を立てると、公式を丸暗記せず確認できます。</p>
+<h2>負帰還のブロック線図</h2>
+<svg class="lesson-diagram" viewBox="0 0 850 250" role="img" aria-label="入力Uから白丸の加算点、G、出力Yへ進み、出力からHを通って加算点のマイナス入力へ戻る負帰還線図">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#2563eb"/></marker></defs>
+<g fill="none" stroke="#2563eb" stroke-width="3"><path d="M85 75H184M237 75H330M500 75H755M640 75V190H500M330 190H210V104" marker-end="url(#arrow)"/><circle cx="210" cy="75" r="26" fill="white"/><rect x="330" y="40" width="170" height="70" rx="6" fill="white"/><rect x="330" y="155" width="170" height="70" rx="6" fill="white"/></g>
+<circle cx="640" cy="75" r="5" fill="#2563eb"/><g text-anchor="middle" fill="#14243f" font-size="23"><text x="45" y="83">U(s)</text><text x="415" y="84">G(s)</text><text x="415" y="199">H(s)</text><text x="798" y="83">Y(s)</text><text x="185" y="35">＋</text><text x="235" y="133">−</text></g></svg>
+<h2>公式を信号の式から導く</h2>
+<ol><li>加算点直後の信号を E(s) とすると、負帰還では <code>E=U−HY</code> です。</li><li>順方向のブロックから <code>Y=GE</code> なので、代入して <code>Y=G(U−HY)=GU−GHY</code>。</li><li>Yを含む項を左へ集めると <code>(1+GH)Y=GU</code>。よって <code>Y/U=G/(1+GH)</code> です。</li></ol>
+<p>正帰還では最初の式が <code>E=U+HY</code> になり、同様に整理すると分母が <code>1−GH</code> になります。戻り経路の係数そのものが負の場合もあるので、加算点とブロックの符号を分けて考えてください。</p>
+<h2>例題：G(s)=2/(s+3)、H(s)=1</h2>
+<p>H(s)=1 の戻り経路を単位フィードバックと呼びます。同じGでも加算点の符号により答えが変わります。</p>
+<div class="formula"><code>負帰還：T(s) = [2/(s+3)]/[1+2/(s+3)] = 2/(s+5)</code></div>
+<div class="formula"><code>正帰還：T(s) = [2/(s+3)]/[1−2/(s+3)] = 2/(s+1)</code></div>
+<p>文字係数なら、G(s)=K/(s+a)、H(s)=1 の負帰還は <code>K/(s+a+K)</code>、正帰還は <code>K/(s+a−K)</code> です。</p>
+<h2>計算ツールで答え合わせする</h2>
+<ol><li>計算画面の「線図から伝達関数」で「負帰還」または「正帰還」の例題を選びます。</li><li>順方向のブロックを押し、分子を <code>2</code>、分母を <code>s+3</code> にします。戻り経路は <code>1</code> にします。</li><li>加算点の戻り入力の＋／−を確認して、「全体の伝達関数を求める」を押します。</li></ol>
+<h2>公式を使うときの注意</h2>
+<p>この公式は図のような1つの帰還ループに対する式です。複数ループが絡み合うときは、個々の信号について連立方程式を立てる必要があります。また <code>1+GH</code> または <code>1−GH</code> が恒等的に0になる場合、通常の一意な伝達関数として計算できません。伝達関数の計算と安定性の判定は別です。</p>
+
+<p><a class="start-link" href="./">無料の計算ツールで確認する</a></p>
+<h2>関連する計算の解説</h2><nav aria-label="関連する計算の解説"><ul><li><a href="./feedback.html">フィードバックの伝達関数：負帰還・正帰還の求め方</a></li><li><a href="./parallel.html">ブロック線図の直列・並列結合：伝達関数の計算方法</a></li><li><a href="./state-space.html">状態空間表現から伝達関数を求める方法と計算例</a></li></ul></nav>
+<p>計算の対象は初期値0の連続時間・線形時不変・1入力1出力系です。計算結果だけでなく符号・接続関係・成立条件も確認してください。</p>
+</main><footer><a href="./">計算画面</a> · <a href="./guide.html">使い方</a> · <a href="./privacy.html">データの扱い</a></footer>
+</body></html>
