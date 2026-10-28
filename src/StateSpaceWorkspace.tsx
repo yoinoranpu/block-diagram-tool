@@ -382,11 +382,16 @@ export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => 
           <StateSpaceDiagram data={result.coefficients} onEdit={onEdit} />
           <details>
             <summary>計算過程・成立条件</summary>
-            <p>G(s) = C(sI−A)⁻¹B + D</p>
+            <h4>1. 使う公式</h4>
+            <Formula tex={String.raw`G(s)=C(sI-A)^{-1}B+D`} />
+            <h4>2. 関係式を立てる</h4>
+            <Formula tex={String.raw`(sI-A)X=BU,\qquad Y=CX+DU`} />
             <p>
               初期値を0として (sI−A)X = BU を解き、Y = CX + DU
               に代入します。逆行列の数値近似を使わず、行列式で有理式を計算しています。
             </p>
+            <h4>3. 入力した行列で計算する</h4>
+            <p>まず分母の候補となる行列式を求めます。極零相殺があると、最終結果の分母とは異なる場合があります。</p>
             <code>det(sI−A) = {result.determinant}</code>
             <p>
               逆行列の式はdet(sI−A) ≠

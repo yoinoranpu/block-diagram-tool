@@ -9,14 +9,15 @@ import {
   fraction,
   equal,
   latex,
-  text,
   type Fraction,
 } from "./engine";
+export type LearningDetail = { title: string; explanation: string; tex: string };
 export type LearningStep = {
   title: string;
   explanation: string;
   tex: string;
   diagram: Diagram;
+  details: LearningDetail[];
 };
 const gain = (d: Diagram, id: string) => {
   const n = d.nodes.find((n) => n.id === id)!;
@@ -59,6 +60,7 @@ export function buildLearning(
           title: string;
           explanation: string;
           value: Fraction;
+          details: LearningDetail[];
         }
       | undefined;
     // Elementary unity/weighted feedback: sum -> G -> branch -> H -> sum.
@@ -129,7 +131,13 @@ export function buildLearning(
             fb.sign === -1
               ? "負フィードバックをまとめる"
               : "正フィードバックをまとめる",
-          explanation: `G = ${text(G)}、H = ${text(H)}。${fb.sign === -1 ? "G/(1+G*H)" : "G/(1-G*H)"} を使って帰還ループを1つのブロックに置き換えます。`,
+          explanation: `出力の一部が加算点へ戻る帰還ループです。戻り入力が${fb.sign === -1 ? "−なので、戻ってきた信号を入力から引きます" : "＋なので、戻ってきた信号を入力に足します"}。この部分を同じ入出力関係の1ブロックにまとめます。`,
+          details: [
+            { title: "1. 関係式を立てる", explanation: "Eを加算点直後、Uをこの部分への入力、Yを出力とします。Gは順方向、Hは戻り経路の伝達関数です。", tex: String.raw`E=U${fb.sign === -1 ? '-' : '+'}HY,\qquad Y=GE` },
+            { title: "2. 使う公式", explanation: "Eを消去し、Yを含む項を左にまとめてから入力Uで割ります。帰還入力の符号と、公式の分母の符号が逆になる点を確認してください。", tex: String.raw`G_{\mathrm{eq}}=\frac{G}{1${fb.sign === -1 ? '+' : '-'}GH}` },
+            { title: "3. 入力した式を代入", explanation: "順方向と戻り経路の伝達関数を、公式のGとHに当てはめます。", tex: String.raw`\begin{gathered}G=${latex(G)},\quad H=${latex(H)}\\[6pt] G_{\mathrm{eq}}=\frac{\left(${latex(G)}\right)}{1${fb.sign === -1 ? '+' : '-'}\left(${latex(G)}\right)\left(${latex(H)}\right)}\end{gathered}` },
+            { title: "4. 整理した結果", explanation: "分数を通分して整理すると、この部分の等価伝達関数が得られます。", tex: String.raw`G_{\mathrm{eq}}=${latex(total)}` },
+          ],
           value: total,
         };
         break;
@@ -172,7 +180,13 @@ export function buildLearning(
         proposal = {
           diagram,
           title: "並列ブロックをまとめる",
-          explanation: `同じ信号を受ける2つの経路を、加算点の符号どおりに加えます：(${text(A)}) + (${text(B)})。`,
+          explanation: "2つの経路に同じ入力が入り、それぞれの出力が加算点で合流しています。そのため、加算点の＋／−を反映した伝達関数の和に置き換えられます。",
+          details: [
+            { title: "1. 関係式を立てる", explanation: "同じ入力Uに対する各経路の出力をY₁、Y₂とします。ε₁、ε₂は加算点の符号（＋1または−1）です。", tex: String.raw`Y_1=G_1U,\quad Y_2=G_2U,\quad Y=\varepsilon_1Y_1+\varepsilon_2Y_2` },
+            { title: "2. 使う公式", explanation: "共通の入力Uでくくってから割ると、符号付きの和になります。", tex: String.raw`G_{\mathrm{eq}}=\varepsilon_1G_1+\varepsilon_2G_2` },
+            { title: "3. 入力した式を代入", explanation: "次の2つの式には、加算点の符号をすでに反映しています。分母が異なる場合は通分します。", tex: String.raw`G_{\mathrm{eq}}=\left(${latex(A)}\right)+\left(${latex(B)}\right)` },
+            { title: "4. 整理した結果", explanation: "分母をそろえて分子を足し、この部分を1ブロックにまとめます。", tex: String.raw`G_{\mathrm{eq}}=${latex(total)}` },
+          ],
           value: total,
         };
         break;
@@ -205,7 +219,13 @@ export function buildLearning(
         proposal = {
           diagram,
           title: "直列ブロックをまとめる",
-          explanation: `${a.label} と ${b.label} は途中に分岐のない直列接続なので、伝達関数を掛けます：(${text(A)}) × (${text(B)})。`,
+          explanation: `${a.label} と ${b.label} は途中に分岐のない直列接続です。前のブロックの出力が、そのまま次のブロックの入力になるので、伝達関数の積に置き換えられます。`,
+          details: [
+            { title: "1. 関係式を立てる", explanation: "2ブロックの間の信号をVとします。最初の出力Vを、次のブロックの入力として使います。", tex: String.raw`V=G_1U,\qquad Y=G_2V` },
+            { title: "2. 使う公式", explanation: "Vを代入するとY=G₂G₁Uとなるので、入力Uで割ります。ここでは1入力1出力の伝達関数を扱っています。", tex: String.raw`G_{\mathrm{eq}}=G_2G_1` },
+            { title: "3. 入力した式を代入", explanation: "各ブロックの式を掛け合わせます。分子同士、分母同士をそれぞれ掛けます。", tex: String.raw`G_{\mathrm{eq}}=\left(${latex(B)}\right)\left(${latex(A)}\right)` },
+            { title: "4. 整理した結果", explanation: "積を整理し、この2ブロックを同じ入出力関係の1ブロックにまとめます。", tex: String.raw`G_{\mathrm{eq}}=${latex(total)}` },
+          ],
           value: total,
         };
         break;
@@ -219,6 +239,7 @@ export function buildLearning(
         title: proposal.title,
         explanation: proposal.explanation,
         tex: latex(proposal.value),
+        details: proposal.details,
         diagram: d,
       });
     } catch {

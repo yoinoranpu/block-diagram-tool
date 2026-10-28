@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ブロック線図の直列・並列結合の計算｜伝達関数の公式と例題｜制御ブロック線図ノート</title>
+<meta name="description" content="直列結合は積、並列結合は符号付きの和。具体的な伝達関数の通分・展開を示し、分岐点と加算点の違い、負の入力の扱いを説明します。"/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="https://yoinoranpu.github.io/block-diagram-tool/parallel.html" />
+<link rel="stylesheet" href="./site.css"/>
+<link rel="icon" type="image/png" sizes="48x48" href="./favicon-48.png"/>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg"/>
+<meta property="og:type" content="article"/><meta property="og:title" content="ブロック線図の直列・並列結合：伝達関数の計算方法"/>
+<meta property="og:description" content="直列結合は積、並列結合は符号付きの和。具体的な伝達関数の通分・展開を示し、分岐点と加算点の違い、負の入力の扱いを説明します。"/>
+<meta property="og:url" content="https://yoinoranpu.github.io/block-diagram-tool/parallel.html"/><meta property="og:image" content="https://yoinoranpu.github.io/block-diagram-tool/og-card.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+</head><body class="info-page">
+<header><a href="./">制御ブロック線図ノート</a><a href="./guide.html">使い方・対応範囲</a></header>
+<main><h1>ブロック線図の直列・並列結合：伝達関数の計算方法</h1><p class="lesson-roadmap">答えを確認 → 関係式を立てる → 代入・整理する → 注意点を確かめる</p>
+<p>直列結合の全体伝達関数は <!-- math -->G_1(s)G_2(s)<!-- /math -->、同じ入力から分岐して出力を足す並列結合では <!-- math -->G_1(s)+G_2(s)<!-- /math --> です。引き算の加算点なら和ではなく差になります。</p>
+<h2>直列結合：通るブロックを掛ける</h2>
+<p>入力UからG₁、G₂、出力Yの順に接続されているとき、中間信号をVとおくと <!-- math -->V=G_1U<!-- /math -->、<!-- math -->Y=G_2V<!-- /math -->。したがって <!-- math -->\frac{Y}{U}=G_2G_1<!-- /math --> です。ここでは1入力1出力の伝達関数を扱います。</p>
+<div class="formula"><strong>入力した2つのブロック</strong><!-- math display -->G_1(s)=\frac{2}{s+1},\quad G_2(s)=\frac{1}{s+3}<!-- /math --><strong>掛け合わせて整理する</strong><!-- math display -->T(s)=\frac{2}{(s+1)(s+3)}=\frac{2}{s^2+4s+3}<!-- /math --></div>
+<p>因数形と展開形は同じ入出力関係を表します。入力するときは掛け算を <code>*</code>、二乗を <code>^2</code> と書きます。</p>
+<h2>並列結合：同じ入力に対する出力を足す</h2>
+<svg class="lesson-diagram" viewBox="0 0 850 240" role="img" aria-label="入力Uを分岐点でG1とG2へ分け、各出力を白丸の加算点で足してYを得る並列線図">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#2563eb"/></marker></defs>
+<g fill="none" stroke="#2563eb" stroke-width="3"><path d="M80 65H290M460 65H614M170 65V175H290M460 175H640V94M667 65H750" marker-end="url(#arrow)"/><rect x="290" y="35" width="170" height="60" rx="6" fill="white"/><rect x="290" y="145" width="170" height="60" rx="6" fill="white"/><circle cx="640" cy="65" r="26" fill="white"/></g><circle cx="170" cy="65" r="5" fill="#2563eb"/><g text-anchor="middle" fill="#14243f" font-size="23"><text x="40" y="73">U(s)</text><text x="375" y="73">G₁(s)</text><text x="375" y="183">G₂(s)</text><text x="795" y="73">Y(s)</text><text x="610" y="32">＋</text><text x="665" y="123">＋</text></g></svg>
+<p>分岐点は同じ信号を複数の経路へ送ります。出力がそれぞれ <!-- math -->Y_1=G_1U<!-- /math -->、<!-- math -->Y_2=G_2U<!-- /math --> で、加算点が <!-- math -->Y=Y_1+Y_2<!-- /math --> なら、<!-- math -->\frac{Y}{U}=G_1+G_2<!-- /math --> です。</p>
+<div class="formula"><strong>① 同じ入力を受ける経路を足す</strong><!-- math display -->T(s)=\frac{2}{s+1}+\frac{1}{s+3}<!-- /math --><strong>② 分母をそろえて通分する</strong><!-- math display -->T(s)=\frac{2(s+3)+(s+1)}{(s+1)(s+3)}<!-- /math --><strong>③ 分子と分母を展開する</strong><!-- math display -->T(s)=\frac{3s+7}{s^2+4s+3}<!-- /math --></div>
+<p>2本目を引くなら分子は <!-- math -->2(s+3)-(s+1)=s+5<!-- /math --> となり、答えは <!-- math -->\frac{s+5}{s^2+4s+3}<!-- /math --> です。分母同士を足す計算にはなりません。</p>
+<h2>計算ツールで確認する</h2>
+<ol><li>「線図から伝達関数」で「直列」または「並列」の例題を選びます。</li><li>2つのブロックを <code>2/(s+1)</code> と <code>1/(s+3)</code> に編集します。</li><li>並列の場合は加算点の入力が両方＋であることを確認し、計算します。片方を−に変えた場合も比較できます。</li></ol>
+<h2>よくある間違い</h2>
+<ul><li>分岐点と加算点は別です。複数の信号を合流させるときは加算点を使います。</li><li>途中から別の信号が入る場合や、途中の信号が帰還する場合は、単純な直列・並列の公式だけで置き換えると接続関係を変えてしまうことがあります。</li><li>ここでの計算は初期値0の連続時間・線形時不変・1入力1出力系を対象にしています。</li></ul>
+
+<p><a class="start-link" href="./">無料の計算ツールで確認する</a></p>
+<h2>関連する計算の解説</h2><nav aria-label="関連する計算の解説"><ul><li><a href="./feedback.html">フィードバックの伝達関数：負帰還・正帰還の求め方</a></li><li><a href="./parallel.html">ブロック線図の直列・並列結合：伝達関数の計算方法</a></li><li><a href="./state-space.html">状態空間表現から伝達関数を求める方法と計算例</a></li></ul></nav>
+<p>計算の対象は初期値0の連続時間・線形時不変・1入力1出力系です。計算結果だけでなく符号・接続関係・成立条件も確認してください。</p>
+</main><footer><a href="./">計算画面</a> · <a href="./guide.html">使い方</a> · <a href="./privacy.html">データの扱い</a></footer>
+</body></html>

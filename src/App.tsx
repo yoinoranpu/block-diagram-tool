@@ -1078,7 +1078,15 @@ export default function App() {
                             {i + 1}. {step.title}
                           </summary>
                           <p>{step.explanation}</p>
-                          <Formula tex={step.tex} />
+                          <div className="learning-details">
+                            {step.details.map((detail) => (
+                              <section key={detail.title}>
+                                <h4>{detail.title}</h4>
+                                <p>{detail.explanation}</p>
+                                <Formula tex={detail.tex} />
+                              </section>
+                            ))}
+                          </div>
                           <Canvas
                             key={`${diagramKey}-${i}`}
                             diagram={step.diagram}
@@ -1097,13 +1105,11 @@ export default function App() {
                     <summary>
                       <span className="step">3</span>計算過程・解説
                     </summary>
-                    <p>
-                      各要素の出力を x1, x2, …、外部入力を U
-                      として、信号方程式を立てます。ブロックの伝達関数と入力符号を反映し、係数行列を
-                      A
-                      とし、分数なし消去法で行列式を厳密に計算します。出力の列を入力係数に置き換えた行列式との比から
-                      Y/U を求めます。
-                    </p>
+                    <ol className="calculation-roadmap">
+                      <li><strong>関係式を立てる：</strong>各要素の出力を x₁、x₂、…、外部入力を U とし、「ブロックは入力に伝達関数を掛ける」「加算点は符号どおりに足す」という式を作ります。</li>
+                      <li><strong>途中の信号を消去する：</strong>複数ループがある場合も、すべての信号の式を連立して解き、出力 Y と入力 U の関係だけを残します。</li>
+                      <li><strong>出力を入力で割る：</strong>得られた Y/U が全体の伝達関数です。以下に実際の信号方程式と、行列式を使った厳密計算の詳細を示します。</li>
+                    </ol>
                     {(current ?? candidate?.result) && (
                       <>
                         <div className="equations">

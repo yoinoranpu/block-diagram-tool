@@ -93,9 +93,10 @@ test("例題の解説はJavaScriptなしで読め、計算画面へ移動でき�
   const page = await context.newPage();
   try {
     await page.goto(base + "guide.html");
-    for (const [file, text] of [["feedback.html", "2/(s+5)"], ["parallel.html", "(3s+7)/(s²+4s+3)"], ["state-space.html", "1/(s²+3s+2)"]]) {
+    for (const [file, text] of [["feedback.html", "単位フィードバック"], ["parallel.html", "通分"], ["state-space.html", "初期状態"]]) {
       await page.getByRole("navigation", { name: "関連する計算の解説" }).locator(`a[href="./${file}"]`).click();
       await expect(page.locator("main")).toContainText(text);
+      expect(await page.locator("main math mfrac").count()).toBeGreaterThan(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await expect(page.getByRole("link", { name: "無料の計算ツールで確認する" })).toHaveAttribute("href", "./");
     }
