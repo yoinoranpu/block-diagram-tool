@@ -76,7 +76,7 @@ jobs:
           root = ET.fromstring(sitemap)
           assert root.tag == '{http://www.sitemaps.org/schemas/sitemap/0.9}urlset', 'Invalid sitemap root'
           urls = [entry.text for entry in root.findall('{*}url/{*}loc')]
-          assert urls == [base, base + 'guide.html', base + 'privacy.html'], f'Unexpected sitemap URLs: {urls}'
+          assert urls == [base] + [base + path for path in ['guide.html', 'privacy.html', 'feedback.html', 'parallel.html', 'state-space.html']], f'Unexpected sitemap URLs: {urls}'
           for url in urls:
               assert b'<html' in fetch(url).lower(), f'Not an HTML page: {url}'
           for filename, size in [('favicon-48.png', (48, 48)), ('favicon-96.png', (96, 96)), ('apple-touch-icon.png', (180, 180)), ('og-card.png', (1200, 630))]:
@@ -101,7 +101,7 @@ jobs:
 
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
               summary.write('## Public publication check\n\n')
-              summary.write('Sitemap XML, all three page URLs, search icons, the social preview image, and the Google ownership file were verified.\n\n')
+              summary.write('Sitemap XML, all six page URLs, search icons, the social preview image, and the Google ownership file were verified.\n\n')
               summary.write('| URL | HTTP | Content-Type |\n| --- | --- | --- |\n')
               for url, status, content_type in rows:
                   summary.write(f'| {url} | {status} | {content_type} |\n')

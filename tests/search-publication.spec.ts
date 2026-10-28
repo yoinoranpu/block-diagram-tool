@@ -54,7 +54,7 @@ test("公開URLと同じ階層で計算・案内ページ・サイトマップ�
     if (doc.querySelector("parsererror")) throw new Error("サイトマップのXMLが不正です");
     return [...doc.querySelectorAll("loc")].map((n) => n.textContent!);
   }, await sitemap.text());
-  expect(links).toHaveLength(3);
+  expect(links).toEqual([publicUrl, ...["guide.html", "privacy.html", "feedback.html", "parallel.html", "state-space.html"].map((path) => publicUrl + path)]);
   for (const link of links) {
     expect(link.startsWith(publicUrl)).toBe(true);
     const response = await request.get(base + link.slice(publicUrl.length));
@@ -85,5 +85,19 @@ test("JavaScriptなしでも公開案内と使い方を読める", async ({ brow
     await page.getByRole("navigation", { name: "サイト案内" }).getByRole("link", { name: "使い方・対応範囲" }).click();
     await expect(page.getByRole("heading", { name: "文字係数・分数の入力" })).toBeVisible();
     await expect(page.locator("main")).toContainText("1/(L*C)");
+  } finally { await context.close(); }
+});
+
+test("例題の解説はJavaScriptなしで読め、計算画面へ移動できる", async ({ browser }, info) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: info.project.use.viewport });
+  const page = await context.newPage();
+  try {
+    await page.goto(base + "guide.html");
+    for (const [file, text] of [["feedback.html", "2/(s+5)"], ["parallel.html", "(3s+7)/(s²+4s+3)"], ["state-space.html", "1/(s²+3s+2)"]]) {
+      await page.getByRole("navigation", { name: "関連する計算の解説" }).locator(`a[href="./${file}"]`).click();
+      await expect(page.locator("main")).toContainText(text);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await expect(page.getByRole("link", { name: "無料の計算ツールで確認する" })).toHaveAttribute("href", "./");
+    }
   } finally { await context.close(); }
 });

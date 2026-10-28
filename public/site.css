@@ -34,3 +34,10 @@
   .info-page header, .info-page main, .info-page footer { padding: 16px; }
   .info-page main { border-radius: 0; }
 }
+
+.info-page .lesson-diagram { display: block; width: 100%; height: auto; margin: 20px 0; }
+.info-page .formula { background: #f2f6fd; border-left: 3px solid #2563eb; border-radius: 4px; padding: 16px; margin: 20px 0; overflow-wrap: anywhere; }
+.info-page .matrix-list { display: flex; align-items: center; flex-wrap: wrap; gap: 24px; margin: 20px 0; }
+.info-page table { border-collapse: collapse; border-left: 2px solid #64748b; border-right: 2px solid #64748b; }
+.info-page caption { font-weight: 600; padding-bottom: 8px; }
+.info-page td { text-align: center; padding: 6px 16px; }
