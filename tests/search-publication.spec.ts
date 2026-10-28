@@ -7,7 +7,7 @@ const prefix = "/block-diagram-tool/";
 const publicUrl = "https://yoinoranpu.github.io/block-diagram-tool/";
 test.beforeAll(async () => {
   const root = resolve("dist");
-  const types: Record<string, string> = { ".html": "text/html", ".css": "text/css", ".js": "application/javascript", ".xml": "application/xml", ".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf" };
+  const types: Record<string, string> = { ".png": "image/png", ".svg": "image/svg+xml", ".html": "text/html", ".css": "text/css", ".js": "application/javascript", ".xml": "application/xml", ".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf" };
   server = createServer(async (req, res) => {
     const path = new URL(req.url!, "http://localhost").pathname;
     const file = resolve(root, path.slice(prefix.length) || "index.html");
@@ -27,9 +27,19 @@ test("公開URLと同じ階層で計算・案内ページ・サイトマップ�
   const failed: string[] = [];
   page.on("requestfailed", (req) => failed.push(req.url()));
   await page.goto(base);
-  await expect(page).toHaveTitle(/ブロック線図・伝達関数・状態空間表現の計算/);
+  await expect(page).toHaveTitle("制御工学計算ツール｜ブロック線図・伝達関数・状態空間表現");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", publicUrl);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /無料・ログイン不要/);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", publicUrl + "og-card.png");
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
+  for (const [file, width, height] of [["favicon-48.png", 48, 48], ["favicon-96.png", 96, 96], ["apple-touch-icon.png", 180, 180], ["og-card.png", 1200, 630]] as const) {
+    const response = await request.get(base + file);
+    expect(response.ok(), file).toBe(true);
+    const bytes = await response.body();
+    expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    expect(bytes.readUInt32BE(16)).toBe(width);
+    expect(bytes.readUInt32BE(20)).toBe(height);
+  }
   const structured = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent() ?? "null");
   expect(structured["@type"]).toBe("WebApplication");
   expect(structured.url).toBe(publicUrl);
