@@ -309,6 +309,10 @@ test("配線不足の表示、整列、経路の強調、基本公式の途中�
     const first = page.locator(".learning-step").first();
     await expect(first.locator("summary")).toContainText(method);
     await first.locator("summary").click();
+    await expect(first.locator(".learning-details h4")).toHaveText([
+      "1. 関係式を立てる", "2. 使う公式", "3. 入力した式を代入", "4. 整理した結果",
+    ]);
+    await expect(first.locator(".katex-error")).toHaveCount(0);
     await expect(first.locator(".diagram-canvas")).toBeVisible();
     await expect(first.locator(".verified")).toContainText("厳密一致");
   }

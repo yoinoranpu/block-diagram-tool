@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>状態空間表現から伝達関数を求める方法｜A・B・C・Dの計算例｜制御ブロック線図ノート</title>
+<meta name="description" content="G(s)=C(sI−A)⁻¹B+Dの意味と、2次系の行列A・B・C・Dから伝達関数1/(s²+3s+2)を導く手順を紹介。初期値0の条件も説明します。"/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="https://yoinoranpu.github.io/block-diagram-tool/state-space.html" />
+<link rel="stylesheet" href="./site.css"/>
+<link rel="icon" type="image/png" sizes="48x48" href="./favicon-48.png"/>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg"/>
+<meta property="og:type" content="article"/><meta property="og:title" content="状態空間表現から伝達関数を求める方法と計算例"/>
+<meta property="og:description" content="G(s)=C(sI−A)⁻¹B+Dの意味と、2次系の行列A・B・C・Dから伝達関数1/(s²+3s+2)を導く手順を紹介。初期値0の条件も説明します。"/>
+<meta property="og:url" content="https://yoinoranpu.github.io/block-diagram-tool/state-space.html"/><meta property="og:image" content="https://yoinoranpu.github.io/block-diagram-tool/og-card.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+</head><body class="info-page">
+<header><a href="./">制御ブロック線図ノート</a><a href="./guide.html">使い方・対応範囲</a></header>
+<main><h1>状態空間表現から伝達関数を求める方法と計算例</h1><p class="lesson-roadmap">答えを確認 → 関係式を立てる → 代入・整理する → 注意点を確かめる</p>
+<p>状態方程式 <!-- math -->\dot{x}=Ax+Bu<!-- /math -->、出力方程式 <!-- math -->y=Cx+Du<!-- /math --> から、初期状態を0とした伝達関数は <!-- math -->G(s)=C(sI-A)^{-1}B+D<!-- /math --> で求められます。Iは単位行列です。</p>
+<h2>A・B・C・Dは何を表す？</h2>
+<ul><li>A：状態同士の関係を表す n×n 行列。</li><li>B：入力が各状態の変化に与える影響を表す n×1 行列。</li><li>C：各状態から出力を取り出す 1×n 行列。</li><li>D：入力から出力へ直接伝わる成分。1入力1出力では1つの値です。</li></ul>
+<h2>例題：2つの状態から伝達関数を求める</h2>
+<div class="matrix-list"><table><caption>A</caption><tbody><tr><td>0</td><td>1</td></tr><tr><td>−2</td><td>−3</td></tr></tbody></table><table><caption>B</caption><tbody><tr><td>0</td></tr><tr><td>1</td></tr></tbody></table><table><caption>C</caption><tbody><tr><td>1</td><td>0</td></tr></tbody></table><p>D = 0</p></div>
+<p>これは <!-- math -->\dot{x}_1=x_2<!-- /math -->、<!-- math -->\dot{x}_2=-2x_1-3x_2+u<!-- /math -->、<!-- math -->y=x_1<!-- /math --> を表します。答えは次のとおりです。</p>
+<div class="formula"><strong>答え：出力を入力で割った関係</strong><!-- math display -->G(s)=\frac{1}{s^2+3s+2}=\frac{1}{(s+1)(s+2)}<!-- /math --></div>
+<h2>計算過程：状態を消去する</h2>
+<ol class="lesson-steps"><li><strong>関係式を立てる：</strong>初期値を0としてラプラス変換すると、<!-- math -->sX_1=X_2<!-- /math -->、<!-- math -->sX_2=-2X_1-3X_2+U<!-- /math --> です。</li><li><strong>代入する：</strong><!-- math -->X_2=sX_1<!-- /math --> を2本目へ代入すると、<!-- math -->s^2X_1=-2X_1-3sX_1+U<!-- /math -->。</li><li><strong>整理する：</strong> <!-- math -->(s^2+3s+2)X_1=U<!-- /math -->。<!-- math -->Y=X_1<!-- /math --> なので <!-- math -->\frac{Y}{U}=\frac{1}{s^2+3s+2}<!-- /math --> となります。</li></ol>
+<h2>行列の公式でも同じ答えになる</h2>
+<p><!-- math -->sI-A<!-- /math --> の成分は1行目が <code>[s, −1]</code>、2行目が <code>[2, s+3]</code> です。行列式は <!-- math -->s(s+3)+2=s^2+3s+2<!-- /math -->。逆行列は次の成分を、この行列式で割ったものです。</p>
+<div class="matrix-list"><table><caption>(sI−A)⁻¹ の分子</caption><tbody><tr><td>s+3</td><td>1</td></tr><tr><td>−2</td><td>s</td></tr></tbody></table></div>
+<p>右からBを掛けると列 <code>[1, s]</code> を分母 <!-- math -->s^2+3s+2<!-- /math --> で割った形になり、左からCを掛けると最初の成分だけが残ります。D=0を加えて同じ答えが得られます。逆行列の式は有理関数として扱い、極の位置で有限の値を取るという意味ではありません。</p>
+<h2>ツールに入力して確認する</h2>
+<ol><li>計算画面の「状態空間表現から」を選び、状態数を2にします。</li><li>上のA・B・C・Dを入力します。負数は <code>-2</code>、<code>-3</code> と入力できます。</li><li>計算して伝達関数と状態変数線図を確認します。文字係数や <code>-R/L</code> のような分数も入力できます。</li></ol>
+<h2>初期値と逆変換についての注意</h2>
+<p>初期状態が0でなければ、出力には <!-- math -->C(sI-A)^{-1}x(0)<!-- /math --> が加わります。伝達関数だけではこの初期状態による応答を表せません。</p>
+<p>伝達関数から状態空間表現を作る方法は一意ではありません。状態の取り方が異なっても同じ入出力関係になることがあります。このサイトでは通常の状態空間表現にする際はプロパーな伝達関数を対象とし、得られる表現が最小実現とは限りません。行列入力などの上限は<a href="./guide.html#limits">対応範囲</a>をご覧ください。</p>
+
+<p><a class="start-link" href="./">無料の計算ツールで確認する</a></p>
+<h2>関連する計算の解説</h2><nav aria-label="関連する計算の解説"><ul><li><a href="./feedback.html">フィードバックの伝達関数：負帰還・正帰還の求め方</a></li><li><a href="./parallel.html">ブロック線図の直列・並列結合：伝達関数の計算方法</a></li><li><a href="./state-space.html">状態空間表現から伝達関数を求める方法と計算例</a></li></ul></nav>
+<p>計算の対象は初期値0の連続時間・線形時不変・1入力1出力系です。計算結果だけでなく符号・接続関係・成立条件も確認してください。</p>
+</main><footer><a href="./">計算画面</a> · <a href="./guide.html">使い方</a> · <a href="./privacy.html">データの扱い</a></footer>
+</body></html>
