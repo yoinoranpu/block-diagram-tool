@@ -21,18 +21,20 @@ const example: StateSpaceInput = {
   D: "0",
 };
 const storage = "control-state-space-v1";
-function initial() {
+function initial(storageKey = storage, fallback = example) {
   try {
-    const raw = localStorage.getItem(storage);
+    const raw = localStorage.getItem(storageKey);
     return raw
       ? validateStateSpace(JSON.parse(raw), true)
-      : structuredClone(example);
+      : structuredClone(fallback);
   } catch {
-    return structuredClone(example);
+    return structuredClone(fallback);
   }
 }
-export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => void }) {
-  const [data, setData] = useState<StateSpaceInput>(initial),
+export function StateSpaceWorkspace({ onEdit, initialData = example, storageKey = storage }: {
+  onEdit: (diagram: Diagram) => void; initialData?: StateSpaceInput; storageKey?: string;
+}) {
+  const [data, setData] = useState<StateSpaceInput>(() => initial(storageKey, initialData)),
     [response, setResponse] = useState<{
       key: string;
       result: StateSpaceResult;
@@ -47,11 +49,11 @@ export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => 
     result = response?.key === key ? response.result : undefined;
   useEffect(() => {
     try {
-      localStorage.setItem(storage, key);
+      localStorage.setItem(storageKey, key);
     } catch {
       setNotice("自動保存できません。JSONで保存してください。");
     }
-  }, [key]);
+  }, [key, storageKey]);
   useEffect(
     () => () => {
       request.current++;
@@ -235,7 +237,7 @@ export function StateSpaceWorkspace({ onEdit }: { onEdit: (diagram: Diagram) => 
                 ))}
               </select>
             </label>
-            <button onClick={() => setData(structuredClone(example))}>
+            <button onClick={() => setData(structuredClone(initialData))}>
               2次の例題
             </button>
             <button

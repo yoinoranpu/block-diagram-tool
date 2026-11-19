@@ -9,5 +9,7 @@ for (const name of await readdir(folder)) {
     const rendered = katex.renderToString(tex, { output: 'mathml', displayMode: Boolean(display), throwOnError: true, trust: false, strict: 'error' });
     return display ? `<div class="lesson-math-display">${rendered}</div>` : rendered;
   });
-  await writeFile(new URL(`../public/${name}`, import.meta.url), html);
+  const breadcrumb = `<nav class="lesson-breadcrumb" aria-label="現在位置"><a href="./">計算ツール</a> / <a href="./examples.html">例題と解説</a></nav>`;
+  const finalHtml = html.replace('<main>', '<main>' + breadcrumb);
+  await writeFile(new URL(`../public/${name}`, import.meta.url), finalHtml);
 }

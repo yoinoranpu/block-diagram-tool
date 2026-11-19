@@ -23,7 +23,7 @@
 <h2>並列結合：同じ入力に対する出力を足す</h2>
 <svg class="lesson-diagram" viewBox="0 0 850 240" role="img" aria-label="入力Uを分岐点でG1とG2へ分け、各出力を白丸の加算点で足してYを得る並列線図">
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#2563eb"/></marker></defs>
-<g fill="none" stroke="#2563eb" stroke-width="3"><path d="M80 65H290M460 65H614M170 65V175H290M460 175H640V94M667 65H750" marker-end="url(#arrow)"/><rect x="290" y="35" width="170" height="60" rx="6" fill="white"/><rect x="290" y="145" width="170" height="60" rx="6" fill="white"/><circle cx="640" cy="65" r="26" fill="white"/></g><circle cx="170" cy="65" r="5" fill="#2563eb"/><g text-anchor="middle" fill="#14243f" font-size="23"><text x="40" y="73">U(s)</text><text x="375" y="73">G₁(s)</text><text x="375" y="183">G₂(s)</text><text x="795" y="73">Y(s)</text><text x="610" y="32">＋</text><text x="665" y="123">＋</text></g></svg>
+<g fill="none" stroke="#2563eb" stroke-width="3"><path d="M80 65H290" marker-end="url(#arrow)"/><path d="M460 65H614" marker-end="url(#arrow)"/><path d="M170 65V175H290" marker-end="url(#arrow)"/><path d="M460 175H640V94" marker-end="url(#arrow)"/><path d="M667 65H750" marker-end="url(#arrow)"/><rect x="290" y="35" width="170" height="60" rx="6" fill="white"/><rect x="290" y="145" width="170" height="60" rx="6" fill="white"/><circle cx="640" cy="65" r="26" fill="white"/></g><circle cx="170" cy="65" r="5" fill="#2563eb"/><g text-anchor="middle" fill="#14243f" font-size="23"><text x="40" y="73">U(s)</text><text x="375" y="73">G₁(s)</text><text x="375" y="183">G₂(s)</text><text x="795" y="73">Y(s)</text><text x="610" y="32">＋</text><text x="665" y="123">＋</text></g></svg>
 <p>分岐点は同じ信号を複数の経路へ送ります。出力がそれぞれ <!-- math -->Y_1=G_1U<!-- /math -->、<!-- math -->Y_2=G_2U<!-- /math --> で、加算点が <!-- math -->Y=Y_1+Y_2<!-- /math --> なら、<!-- math -->\frac{Y}{U}=G_1+G_2<!-- /math --> です。</p>
 <div class="formula"><strong>① 同じ入力を受ける経路を足す</strong><!-- math display -->T(s)=\frac{2}{s+1}+\frac{1}{s+3}<!-- /math --><strong>② 分母をそろえて通分する</strong><!-- math display -->T(s)=\frac{2(s+3)+(s+1)}{(s+1)(s+3)}<!-- /math --><strong>③ 分子と分母を展開する</strong><!-- math display -->T(s)=\frac{3s+7}{s^2+4s+3}<!-- /math --></div>
 <p>2本目を引くなら分子は <!-- math -->2(s+3)-(s+1)=s+5<!-- /math --> となり、答えは <!-- math -->\frac{s+5}{s^2+4s+3}<!-- /math --> です。分母同士を足す計算にはなりません。</p>
@@ -32,7 +32,7 @@
 <h2>よくある間違い</h2>
 <ul><li>分岐点と加算点は別です。複数の信号を合流させるときは加算点を使います。</li><li>途中から別の信号が入る場合や、途中の信号が帰還する場合は、単純な直列・並列の公式だけで置き換えると接続関係を変えてしまうことがあります。</li><li>ここでの計算は初期値0の連続時間・線形時不変・1入力1出力系を対象にしています。</li></ul>
 
-<p><a class="start-link" href="./">無料の計算ツールで確認する</a></p>
+<div class="example-links"><a class="start-link" href="./?example=series">直列の例題を入力済みで開く</a><a class="start-link" href="./?example=parallel">並列の例題を入力済みで開く</a></div><p><a href="./examples.html">ほかの例題と答えを見る</a></p><p><a class="start-link" href="./">無料の計算ツールで確認する</a></p>
 <h2>関連する計算の解説</h2><nav aria-label="関連する計算の解説"><ul><li><a href="./feedback.html">フィードバックの伝達関数：負帰還・正帰還の求め方</a></li><li><a href="./parallel.html">ブロック線図の直列・並列結合：伝達関数の計算方法</a></li><li><a href="./state-space.html">状態空間表現から伝達関数を求める方法と計算例</a></li></ul></nav>
 <p>計算の対象は初期値0の連続時間・線形時不変・1入力1出力系です。計算結果だけでなく符号・接続関係・成立条件も確認してください。</p>
 </main><footer><a href="./">計算画面</a> · <a href="./guide.html">使い方</a> · <a href="./privacy.html">データの扱い</a></footer>

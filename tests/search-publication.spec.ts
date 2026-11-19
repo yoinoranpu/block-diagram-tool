@@ -54,7 +54,7 @@ test("公開URLと同じ階層で計算・案内ページ・サイトマップ�
     if (doc.querySelector("parsererror")) throw new Error("サイトマップのXMLが不正です");
     return [...doc.querySelectorAll("loc")].map((n) => n.textContent!);
   }, await sitemap.text());
-  expect(links).toEqual([publicUrl, ...["guide.html", "privacy.html", "feedback.html", "parallel.html", "state-space.html"].map((path) => publicUrl + path)]);
+  expect(links).toEqual([publicUrl, ...["guide.html", "privacy.html", "feedback.html", "parallel.html", "state-space.html", "examples.html"].map((path) => publicUrl + path)]);
   for (const link of links) {
     expect(link.startsWith(publicUrl)).toBe(true);
     const response = await request.get(base + link.slice(publicUrl.length));
@@ -101,4 +101,23 @@ test("例題の解説はJavaScriptなしで読め、計算画面へ移動でき�
       await expect(page.getByRole("link", { name: "無料の計算ツールで確認する" })).toHaveAttribute("href", "./");
     }
   } finally { await context.close(); }
+});
+
+test("例題一覧から問題・答えを確認し、入力済みの計算画面へ進める", async ({ page }, info) => {
+  await page.goto(base + "examples.html");
+  await expect(page).toHaveTitle(/ブロック線図の例題6選/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', publicUrl + 'examples.html');
+  await expect(page.locator('.example-card')).toHaveCount(6);
+  for (const id of ['series', 'parallel', 'negative', 'positive', 'multi', 'state']) {
+    const card = page.locator('#' + id);
+    await card.locator('summary').click();
+    await expect(card.locator('.formula')).toBeVisible();
+    await expect(card.getByRole('link', { name: 'この例題を編集して計算する' })).toHaveAttribute('href', './?example=' + id);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('#multi').screenshot({ path: `/tmp/control-multi-${info.project.name}.png` });
+  await page.locator('#series').getByRole('link', { name: 'この例題を編集して計算する' }).click();
+  await expect(page.getByRole('complementary', { name: '例題の作業画面' })).toContainText('直列結合');
+  await page.getByRole('button', { name: '全体の伝達関数を求める', exact: true }).click();
+  await expect(page.locator('.result-status')).toBeVisible();
 });
