@@ -14,7 +14,7 @@
 <meta name="twitter:card" content="summary_large_image"/>
 </head><body class="info-page">
 <header><a href="./">制御ブロック線図ノート</a><a href="./guide.html">使い方・対応範囲</a></header>
-<main><h1>状態空間表現から伝達関数を求める方法と計算例</h1><p class="lesson-roadmap">答えを確認 → 関係式を立てる → 代入・整理する → 注意点を確かめる</p>
+<main><nav class="lesson-breadcrumb" aria-label="現在位置"><a href="./">計算ツール</a> / <a href="./examples.html">例題と解説</a></nav><h1>状態空間表現から伝達関数を求める方法と計算例</h1><p class="lesson-roadmap">答えを確認 → 関係式を立てる → 代入・整理する → 注意点を確かめる</p>
 <p>状態方程式 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>x</mi><mo>˙</mo></mover><mo>=</mo><mi>A</mi><mi>x</mi><mo>+</mo><mi>B</mi><mi>u</mi></mrow><annotation encoding="application/x-tex">\dot{x}=Ax+Bu</annotation></semantics></math></span>、出力方程式 <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mi>C</mi><mi>x</mi><mo>+</mo><mi>D</mi><mi>u</mi></mrow><annotation encoding="application/x-tex">y=Cx+Du</annotation></semantics></math></span> から、初期状態を0とした伝達関数は <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo stretchy="false">(</mo><mi>s</mi><mo stretchy="false">)</mo><mo>=</mo><mi>C</mi><mo stretchy="false">(</mo><mi>s</mi><mi>I</mi><mo>−</mo><mi>A</mi><msup><mo stretchy="false">)</mo><mrow><mo>−</mo><mn>1</mn></mrow></msup><mi>B</mi><mo>+</mo><mi>D</mi></mrow><annotation encoding="application/x-tex">G(s)=C(sI-A)^{-1}B+D</annotation></semantics></math></span> で求められます。Iは単位行列です。</p>
 <h2>A・B・C・Dは何を表す？</h2>
 <ul><li>A：状態同士の関係を表す n×n 行列。</li><li>B：入力が各状態の変化に与える影響を表す n×1 行列。</li><li>C：各状態から出力を取り出す 1×n 行列。</li><li>D：入力から出力へ直接伝わる成分。1入力1出力では1つの値です。</li></ul>
@@ -34,7 +34,7 @@
 <p>初期状態が0でなければ、出力には <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo stretchy="false">(</mo><mi>s</mi><mi>I</mi><mo>−</mo><mi>A</mi><msup><mo stretchy="false">)</mo><mrow><mo>−</mo><mn>1</mn></mrow></msup><mi>x</mi><mo stretchy="false">(</mo><mn>0</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">C(sI-A)^{-1}x(0)</annotation></semantics></math></span> が加わります。伝達関数だけではこの初期状態による応答を表せません。</p>
 <p>伝達関数から状態空間表現を作る方法は一意ではありません。状態の取り方が異なっても同じ入出力関係になることがあります。このサイトでは通常の状態空間表現にする際はプロパーな伝達関数を対象とし、得られる表現が最小実現とは限りません。行列入力などの上限は<a href="./guide.html#limits">対応範囲</a>をご覧ください。</p>
 
-<p><a class="start-link" href="./">無料の計算ツールで確認する</a></p>
+<div class="example-links"><a class="start-link" href="./?example=state">状態空間の例題を入力済みで開く</a></div><p><a href="./examples.html">ほかの例題と答えを見る</a></p><p><a class="start-link" href="./">無料の計算ツールで確認する</a></p>
 <h2>関連する計算の解説</h2><nav aria-label="関連する計算の解説"><ul><li><a href="./feedback.html">フィードバックの伝達関数：負帰還・正帰還の求め方</a></li><li><a href="./parallel.html">ブロック線図の直列・並列結合：伝達関数の計算方法</a></li><li><a href="./state-space.html">状態空間表現から伝達関数を求める方法と計算例</a></li></ul></nav>
 <p>計算の対象は初期値0の連続時間・線形時不変・1入力1出力系です。計算結果だけでなく符号・接続関係・成立条件も確認してください。</p>
 </main><footer><a href="./">計算画面</a> · <a href="./guide.html">使い方</a> · <a href="./privacy.html">データの扱い</a></footer>

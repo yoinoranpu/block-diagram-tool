@@ -1,3 +1,4 @@
+import { exampleLink, exampleTitles, linkedDiagram, linkedState } from './exampleLinks';
 import { PhysicalExamplePicker, PhysicalExampleGuide } from "./PhysicalExamplePicker";
 import type { PhysicalExample } from "./physicalExamples";
 import { RealizationPanel } from "./RealizationPanel";
@@ -29,11 +30,12 @@ type Generated = {
   candidates: Candidate[];
   limitations: string[];
 };
-const KEY = "control-diagram-v1";
+const requestedExample = exampleLink(window.location.search);
+const KEY = requestedExample ? `control-diagram-v1-example-${requestedExample}` : "control-diagram-v1";
 function load(): { saved: Saved; warning?: string } {
   const fallback: Saved = {
     version: 1,
-    diagram: example(),
+    diagram: requestedExample ? linkedDiagram(requestedExample) : example(),
     numerator: "K",
     denominator: "(s+a)*(s+b)",
   };
@@ -46,7 +48,7 @@ function load(): { saved: Saved; warning?: string } {
     return {
       saved: fallback,
       warning:
-        "保存データを復元できませんでした。負帰還の例題を表示しています。必要なJSONを読み込んでください。",
+        "保存データを復元できませんでした。初期状態の例題を表示しています。必要なJSONを読み込んでください。",
     };
   }
 }
@@ -247,7 +249,7 @@ export default function App() {
     setShowDetails(false);
   };
   const [wire, setWire] = useState<string>();
-  const [tab, setTab] = useState<"diagram" | "formula" | "state">("diagram");
+  const [tab, setTab] = useState<"diagram" | "formula" | "state">(requestedExample === "state" ? "state" : "diagram");
   const [num, setNum] = useState(initial.saved.numerator),
     [den, setDen] = useState(initial.saved.denominator);
   const [answer, setAnswer] = useState<{ data: Analysis; key: string }>();
@@ -590,6 +592,23 @@ export default function App() {
             <span>03</span> 状態空間表現から
           </button>
         </nav>
+        {requestedExample && (
+          <aside className="example-context" aria-label="例題の作業画面">
+            <strong>{exampleTitles[requestedExample]}の例題</strong>
+            <span>係数を変えて試せます。通常の作業とは別に保存します。</span>
+            <a href="./examples.html">問題と解説を見る</a>
+            <a href="./">通常の作業へ戻る</a>
+            <button onClick={() => {
+              change(linkedDiagram(requestedExample));
+              setTab(requestedExample === "state" ? "state" : "diagram");
+              select(""); setWire(undefined); setAnswer(undefined);
+              if (requestedExample === "state") {
+                try { localStorage.removeItem(`control-state-space-v1-example-${requestedExample}`); window.location.reload(); }
+                catch { setNotice("例題を初期化できませんでした。保存設定を確認してください。"); }
+              }
+            }}>例題を初期状態に戻す</button>
+          </aside>
+        )}
         {notice && (
           <div className="notice" role="status">
             {notice}
@@ -599,7 +618,10 @@ export default function App() {
           </div>
         )}
         {tab === "state" ? (
-          <StateSpaceWorkspace onEdit={(d) => {
+          <StateSpaceWorkspace
+            initialData={requestedExample === "state" ? linkedState : undefined}
+            storageKey={requestedExample ? `control-state-space-v1-example-${requestedExample}` : undefined}
+            onEdit={(d) => {
             change(d);
             select("");
             setWire(undefined);
@@ -634,7 +656,7 @@ export default function App() {
               {tab === "diagram" ? (
                 <>
                   <div className="examples">
-                    <span>例題から始める</span>
+                    <span><a href="./examples.html">例題・解説を見る</a></span>
                     {(
                       [
                         ["series", "直列"],

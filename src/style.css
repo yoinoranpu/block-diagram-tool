@@ -1816,3 +1816,7 @@ main {
 
 .calculation-roadmap { font-size: 13px; line-height: 1.9; padding-left: 24px; color: #52647d; }
 .calculation-roadmap li { margin: 10px 0; }
+
+.example-context { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; margin: 10px 0; background: #edf4ff; border-radius: 8px; font-size: 13px; }
+.example-context span { flex: 1 1 240px; }
+.example-context a { color: #215fba; }
