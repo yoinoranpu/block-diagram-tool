@@ -1,3 +1,4 @@
+import { ExpressionKeypad, prefersCalculator } from './ExpressionKeypad';
 import { exampleLink, exampleTitles, linkedDiagram, linkedState } from './exampleLinks';
 import { PhysicalExamplePicker, PhysicalExampleGuide } from "./PhysicalExamplePicker";
 import type { PhysicalExample } from "./physicalExamples";
@@ -84,39 +85,16 @@ function FractionInput({
   prefix?: string;
 }) {
   const [active, setActive] = useState<"n" | "d">("n");
+  const [calculator, setCalculator] = useState(prefersCalculator);
   const nref = useRef<HTMLInputElement>(null),
     dref = useRef<HTMLInputElement>(null);
-  function insert(t: string) {
-    const el = (active === "n" ? nref : dref).current!,
-      val = active === "n" ? num : den;
-    const start = el.selectionStart ?? val.length,
-      end = el.selectionEnd ?? start;
-    let next: string, caret: number;
-    if (t === "C") {
-      next = "";
-      caret = 0;
-    } else if (t === "⌫") {
-      const cut = start === end ? Math.max(0, start - 1) : start;
-      next = val.slice(0, cut) + val.slice(end);
-      caret = cut;
-    } else {
-      next = val.slice(0, start) + t + val.slice(end);
-      caret = start + t.length;
-    }
-    if (next.length > 300) return;
-    onChange(active === "n" ? next : num, active === "d" ? next : den);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(caret, caret);
-    });
-  }
   return (
     <div className="fraction-editor">
       <div className="fraction-fields">
         <label>
           <span>分子</span>
           <input
-            ref={nref}
+            ref={nref} inputMode={calculator ? 'none' : 'text'}
             aria-label={`${prefix}の分子`}
             aria-invalid={!num.trim()}
             placeholder="例：K、2、s+1"
@@ -144,7 +122,7 @@ function FractionInput({
         <label>
           <span>分母</span>
           <input
-            ref={dref}
+            ref={dref} inputMode={calculator ? 'none' : 'text'}
             aria-label={`${prefix}の分母`}
             aria-invalid={false}
             placeholder="省略すると 1"
@@ -171,53 +149,13 @@ function FractionInput({
       </div>
       <details
         className={`keypad-details ${prefix === "選択ブロック" ? "compact" : "expanded"}`}
-        open={prefix === "選択ブロック" ? undefined : true}
+        open={calculator || prefix !== "選択ブロック"}
       >
         <summary>入力補助キーを開く</summary>
-        <div className="keypad" aria-label="式入力の補助キー">
-          {[
-            "7",
-            "8",
-            "9",
-            "+",
-            "s",
-            "K",
-            "4",
-            "5",
-            "6",
-            "−",
-            "a",
-            "b",
-            "1",
-            "2",
-            "3",
-            "×",
-            "(",
-            ")",
-            "0",
-            ".",
-            "^",
-            "/",
-            "⌫",
-            "C",
-          ].map((t) => (
-            <button
-              key={t}
-              aria-label={
-                t === "⌫"
-                  ? "1文字削除"
-                  : t === "C"
-                    ? "入力欄をクリア"
-                    : undefined
-              }
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => insert(t === "−" ? "-" : t === "×" ? "*" : t)}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+        <button type="button" onClick={()=>setCalculator(!calculator)}>{calculator ? 'キーボード入力に切替' : '電卓キーで入力する'}</button>
+        <p className="keypad-target">{active === 'n' ? '分子' : '分母'}を入力中。入力欄を選ぶと切り替わります。</p>
+        <ExpressionKeypad inputRef={active === 'n' ? nref : dref} value={active === 'n' ? num : den}
+          onChange={value=>onChange(active === 'n' ? value : num, active === 'd' ? value : den)} />
       </details>
       {!num.trim() && (
         <p className="inline-validation" role="status">

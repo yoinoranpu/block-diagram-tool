@@ -1,3 +1,4 @@
+import { diagramExpression } from './expressionDisplay';
 import { BlockEditor } from "./BlockEditor";
 import { ActionMenu } from "./ActionMenu";
 import { isUnityDenominator } from "./normalizeInput";
@@ -750,12 +751,9 @@ export function Canvas({
                     y={isUnityDenominator(n.den) ? 14 : 5}
                     textAnchor="middle"
                     className={`node-expression ${isUnityDenominator(n.den) ? "block-gain" : ""} `}
+                    style={{ fontSize: diagramExpression(n.num).fontSize }}
                   >
-                    {!n.num.trim()
-                      ? "未入力"
-                      : n.num.length > 15
-                        ? n.num.slice(0, 14) + "…"
-                        : n.num}
+                    {diagramExpression(n.num).text}
                   </text>
                   {!isUnityDenominator(n.den) && (
                     <>
@@ -771,12 +769,9 @@ export function Canvas({
                         y="31"
                         textAnchor="middle"
                         className={`node-expression `}
+                        style={{ fontSize: diagramExpression(n.den).fontSize }}
                       >
-                        {!n.den.trim()
-                          ? "未入力"
-                          : n.den.length > 15
-                            ? n.den.slice(0, 14) + "…"
-                            : n.den}
+                        {diagramExpression(n.den).text}
                       </text>
                     </>
                   )}
