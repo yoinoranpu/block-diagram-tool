@@ -1,3 +1,4 @@
+import { displayExpression } from './expressionDisplay';
 import { useEffect, useMemo, useRef, useState, useId } from "react";
 import type { StateLayout, LayoutPoint, StateDiagramOptions } from "./StateConnectedGraph";
 import type { StateSpaceInput } from "./stateSpaceModel";
@@ -193,7 +194,7 @@ export function StateConnectedDiagram({
               >
                 <title>
                   {stateSignalLabel(node.label)}
-                  {node.value ? `: ${node.value}` : ""}
+                  {node.value ? `: ${displayExpression(node.value ?? "")}` : ""}
                 </title>
                 {node.kind === "sum" ? (
                   <>
@@ -291,7 +292,7 @@ export function StateConnectedDiagram({
                       }
                       lengthAdjust="spacingAndGlyphs"
                     >
-                      {node.value}
+                      {displayExpression(node.value ?? "")}
                     </text>
                   </>
                 ) : (

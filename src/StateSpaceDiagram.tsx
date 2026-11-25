@@ -1,3 +1,4 @@
+import { displayExpression } from './expressionDisplay';
 import { calculate } from "./mathClient";
 import type { Diagram } from "./model";
 import { stateSignalLabel } from "./stateNotation";
@@ -194,8 +195,8 @@ function StateLabelDiagram({ data, options }: {
                             textLength={term.value.length > 18 ? 174 : undefined}
                             lengthAdjust="spacingAndGlyphs"
                           >
-                            <title>{term.value}</title>
-                            {term.value}
+                            <title>{displayExpression(term.value)}</title>
+                            {displayExpression(term.value)}
                           </text>
                         </>
                       )}

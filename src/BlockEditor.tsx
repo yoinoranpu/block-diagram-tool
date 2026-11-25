@@ -1,3 +1,4 @@
+import { ExpressionKeypad, ExpressionPreview, prefersCalculator } from './ExpressionKeypad';
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { normalizeFormula } from "./normalizeInput";
@@ -10,6 +11,9 @@ export function BlockEditor({ block, svg, change, close, cameraKey, autoFocus = 
   cameraKey: string;
   autoFocus?: boolean;
 }) {
+  const [calculator, setCalculator] = useState(prefersCalculator);
+  const [active, setActive] = useState<'num' | 'den'>('num');
+  const numerator = useRef<HTMLInputElement>(null), denominator = useRef<HTMLInputElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (autoFocus) panel.current?.querySelector<HTMLInputElement>('input[aria-label="選択ブロックの分子"]')?.focus({ preventScroll: true });
@@ -52,7 +56,7 @@ export function BlockEditor({ block, svg, change, close, cameraKey, autoFocus = 
       window.visualViewport?.removeEventListener("scroll", place);
     };
   }, [block.id, block.x, block.y, cameraKey]);
-  return createPortal(<div ref={panel} className="block-editor-popover" role="region"
+  return createPortal(<div ref={panel} className={`block-editor-popover ${calculator ? "calculator-open" : ""}`} role="region"
     aria-label="ブロックを編集" style={position}
     onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Escape") close(); }}>
     <div className="block-editor-heading"><strong>ブロックを編集</strong>
@@ -62,13 +66,23 @@ export function BlockEditor({ block, svg, change, close, cameraKey, autoFocus = 
       onChange={(e) => change({ label: e.target.value })} /></label>
     {(["num", "den"] as const).map((field) => <label key={field}>
       {field === "num" ? "分子" : "分母"}
-      <input aria-label={`選択ブロックの${field === "num" ? "分子" : "分母"}`}
+      <input ref={field === 'num' ? numerator : denominator}
+        inputMode={calculator ? 'none' : 'text'} data-active={calculator && active===field ? 'true' : undefined} onFocus={()=>setActive(field)}
+        aria-label={`選択ブロックの${field === "num" ? "分子" : "分母"}`}
         value={block[field]} placeholder={field === "den" ? "空欄は1" : "例：K、s+1"}
         maxLength={300} autoCapitalize="off" autoCorrect="off" spellCheck={false}
         onChange={(e) => change({ [field]: (e.nativeEvent as InputEvent).isComposing
           ? e.target.value : normalizeFormula(e.target.value) })}
         onCompositionEnd={(e) => change({ [field]: normalizeFormula(e.currentTarget.value) })} />
     </label>)}
-    <p>分母は空欄でも1として計算します。掛け算は *。</p>
+    <details className="expression-preview-details" open={!calculator}><summary>数式の表示を確認</summary><ExpressionPreview num={block.num} den={block.den} /></details>
+    <div className="expression-input-mode">
+      <button type="button" onClick={()=>setCalculator(!calculator)}>{calculator ? 'キーボード入力に切替' : '電卓キーを表示'}</button>
+      <span>{active === 'num' ? '分子' : '分母'}を入力中</span>
+    </div>
+    {calculator && <>
+      <ExpressionKeypad inputRef={active==='num'?numerator:denominator} value={block[active]} onChange={value=>change({[active]:value})}/>
+    </>}
+    <p>分母は空欄なら1。×は *、指数は ^ を入力します。</p>
   </div>, document.body);
 }
