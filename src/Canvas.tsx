@@ -57,6 +57,8 @@ export function Canvas({
     graph?: { x: number; y: number };
   }>();
   const svg = useRef<SVGSVGElement>(null);
+  const [keyboardEdit, setKeyboardEdit] = useState(false);
+  const returnFocus = useRef<SVGElement | null>(null);
   const drag = useRef<{
     id: string;
     startX: number;
@@ -230,15 +232,15 @@ export function Canvas({
   return (
     <div className={`canvas-shell ${readonly ? "readonly" : ""}`}>
       {activeBlock && !readonly && !detailsOpen && !moving && (
-        <BlockEditor block={activeBlock} svg={svg}
+        <BlockEditor block={activeBlock} svg={svg} autoFocus={keyboardEdit}
           cameraKey={JSON.stringify([camera, size])}
-          close={() => select("")}
+          close={() => { select(""); if (keyboardEdit) returnFocus.current?.focus({ preventScroll: true }); setKeyboardEdit(false); }}
           change={(patch) => change({ ...diagram, nodes: diagram.nodes.map((n) =>
             n.id === activeBlock.id ? { ...n, ...patch } : n) })}
         />
       )}
       {!readonly && (
-        <div className="node-actions selection-bar">
+        <div className={`node-actions selection-bar ${selected ? "has-selection" : "empty-selection"}`}>
           {activeBlock && !detailsOpen ? (
             <>
               <strong>{activeBlock.label} を直接編集</strong>
@@ -397,12 +399,13 @@ export function Canvas({
               change(arrangeDiagram(diagram));
               setFitVersion((v) => v + 1);
             }}
+            aria-label="線図を整える"
             title="配線を保ったまま要素を整列します。元に戻すこともできます"
           >
-            線図を整える
+            <span className="control-full-label">線図を整える</span><span className="control-short-label">整える</span>
           </button>
         )}
-        <ActionMenu label="表示・配置">
+        <div className="zoom-controls" aria-label="拡大縮小">
           <button aria-label="縮小" onClick={() => zoomBy(1.25)}>
             −
           </button>
@@ -410,7 +413,9 @@ export function Canvas({
           <button aria-label="拡大" onClick={() => zoomBy(0.8)}>
             ＋
           </button>
-          <button onClick={fit}>全体表示</button>
+          <button aria-label="全体表示" onClick={fit}><span className="control-full-label">全体表示</span><span className="control-short-label">全体</span></button>
+        </div>
+        <ActionMenu label="表示・配置" shortLabel="配置">
           {!readonly && (
             <>
               <label className="snap-toggle">
@@ -424,7 +429,7 @@ export function Canvas({
             </>
           )}
         </ActionMenu>
-        <ActionMenu label={fileActions ? "保存・読込" : "画像保存"}>
+        <ActionMenu label={fileActions ? "保存・読込" : "画像保存"} shortLabel={fileActions ? "保存" : "画像"}>
           {fileActions}
           <button
             disabled={exporting || !diagram.nodes.length}
@@ -479,7 +484,7 @@ export function Canvas({
             pan.current = null;
           }}
           className={`diagram-canvas ${selected && signal.label ? "path-focus" : ""}`}
-          role="img"
+          role={readonly ? "img" : "group"}
           aria-label="ブロック線図。各要素の右側の接続口から左側の接続口へクリックして配線します。"
           onClick={(e) => {
             if (e.target === e.currentTarget) select("");
@@ -619,12 +624,7 @@ export function Canvas({
               key={n.id}
               transform={`translate(${n.x},${n.y})`}
               className={`diagram-node ${selected === n.id ? "selected" : ""} ${signal.nodes.has(n.id) ? "on-path" : ""} ${checks.some((c) => c.nodeId === n.id) ? "wiring-issue" : ""} ${n.kind === "block" && !n.num.trim() ? "invalid" : ""}`}
-              role={readonly ? undefined : "button"}
-              tabIndex={readonly ? undefined : 0}
-              aria-label={`${labels[n.kind]} ${n.label}`}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") select(n.id);
-              }}
+              role={readonly ? undefined : "group"}
               onContextMenu={(e) => {
                 if (
                   readonly ||
@@ -650,6 +650,7 @@ export function Canvas({
                 )
                   return;
                 e.stopPropagation();
+                setKeyboardEdit(false);
                 setContext(undefined);
                 select(n.id);
                 const p = point(e);
@@ -723,6 +724,15 @@ export function Canvas({
                 setMoving(undefined);
               }}
             >
+              <g role={readonly ? undefined : "button"} tabIndex={readonly ? undefined : 0}
+                aria-label={`${labels[n.kind]} ${n.label}`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault(); e.stopPropagation();
+                    returnFocus.current = e.currentTarget;
+                    setKeyboardEdit(n.kind === "block"); select(n.id);
+                  }
+                }}>
               {n.kind === "block" ? (
                 <>
                   <rect
@@ -811,6 +821,7 @@ export function Canvas({
                   </text>
                 </>
               )}
+              </g>
               {!readonly && n.kind !== "input" && (
                 <g
                   className="port"

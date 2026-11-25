@@ -2,11 +2,13 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 export function ActionMenu({
   label,
+  shortLabel,
   children,
   initialOpen = false,
   position,
 }: {
   label: string;
+  shortLabel?: string;
   children: ReactNode;
   initialOpen?: boolean;
   position?: { x: number; y: number };
@@ -34,8 +36,8 @@ export function ActionMenu({
   }, [open]);
   return (
     <div className="action-menu" ref={root}>
-      <button ref={trigger} aria-expanded={open} onClick={() => setOpen(!open)}>
-        {label} ▾
+      <button ref={trigger} aria-label={label} aria-expanded={open} onClick={() => setOpen(!open)}>
+        {shortLabel ? <><span className="control-full-label">{label}</span><span className="control-short-label">{shortLabel}</span></> : label} ▾
       </button>
       {open && (
         <div
