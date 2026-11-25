@@ -456,9 +456,13 @@ export default function App() {
           setCandidateIndex(0);
         }
       }
-      resultRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
+      if (id === requestId.current) requestAnimationFrame(() => {
+        const result = resultRef.current;
+        if (!result) return;
+        if (window.matchMedia("(max-width: 850px)").matches) {
+          result.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+          result.focus({ preventScroll: true });
+        }
       });
     } catch (err) {
       if (id === requestId.current) {
@@ -631,7 +635,7 @@ export default function App() {
           }} />
         ) : (
           <div className="workspace">
-            <section className="input-panel panel">
+            <section id="diagram-input" className="input-panel panel">
               <div className="panel-heading">
                 <h2>
                   <span className="step">1</span>
@@ -714,6 +718,19 @@ export default function App() {
                         </button>
                       ))}
                     </div>
+
+                  </div>
+                  <div className={`canvas-guide ${wire ? "wiring" : ""}`}>
+                    <span>
+                      {wire
+                        ? "● 接続先の白い入力口を選んでください。合流は白丸の加算点へ。"
+                        : "青い出力口 → 白い入力口で配線。ブロックを選ぶと図上で式を入力できます。掛け算は *。"}
+                    </span>
+                    {wire && (
+                      <button onClick={() => setWire(undefined)}>
+                        配線を中止
+                      </button>
+                    )}
                     <div className="undo-tools">
                       <button
                         aria-label="元に戻す"
@@ -740,18 +757,6 @@ export default function App() {
                         ↷
                       </button>
                     </div>
-                  </div>
-                  <div className={`canvas-guide ${wire ? "wiring" : ""}`}>
-                    <span>
-                      {wire
-                        ? "● 接続先の白い入力口を選んでください。合流は白丸の加算点へ。"
-                        : "青い出力口 → 白い入力口で配線。ブロックを選ぶと図上で式を入力できます。掛け算は *。"}
-                    </span>
-                    {wire && (
-                      <button onClick={() => setWire(undefined)}>
-                        配線を中止
-                      </button>
-                    )}
                     <button
                       className="primary diagram-calculate"
                       disabled={busy}
@@ -984,7 +989,8 @@ export default function App() {
                 </div>
               )}
             </section>
-            <aside ref={resultRef} className="result-panel panel">
+            <aside ref={resultRef} className="result-panel panel" tabIndex={-1} aria-label="計算結果">
+              <a className="back-to-diagram" href="#diagram-input">図・式を編集する場所へ戻る</a>
               <div className="panel-heading">
                 <h2>
                   <span className="step">2</span>答えを確かめる

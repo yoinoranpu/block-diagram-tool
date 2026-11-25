@@ -2,14 +2,18 @@ import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { normalizeFormula } from "./normalizeInput";
 import type { DiagramNode } from "./model";
-export function BlockEditor({ block, svg, change, close, cameraKey }: {
+export function BlockEditor({ block, svg, change, close, cameraKey, autoFocus = false }: {
   block: DiagramNode;
   svg: RefObject<SVGSVGElement | null>;
   change: (patch: Partial<DiagramNode>) => void;
   close: () => void;
   cameraKey: string;
+  autoFocus?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (autoFocus) panel.current?.querySelector<HTMLInputElement>('input[aria-label="選択ブロックの分子"]')?.focus({ preventScroll: true });
+  }, [block.id, autoFocus]);
   const [position, setPosition] = useState({ left: 12, top: 12, maxHeight: window.innerHeight - 24 });
   useLayoutEffect(() => {
     function place() {

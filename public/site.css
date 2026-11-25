@@ -16,7 +16,7 @@
 .site-information h2 { display: block; font-size: 15px; margin: 0 0 8px; }
 .site-information p { margin: 8px 0; }
 .site-information nav { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 16px; }
-.site-information summary { cursor: pointer; }
+.site-information summary { cursor: pointer; min-height: 32px; padding-block: 4px; }
 .site-information a, .loading-intro a, .info-page a { color: #215fba; text-underline-offset: 3px; }
 .loading-intro { margin: 30px auto; max-width: 900px; padding: 20px; }
 .loading-intro h1 { font-size: 22px; }

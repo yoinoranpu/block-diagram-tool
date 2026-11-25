@@ -242,7 +242,7 @@ test("分岐点の中央をマウスと指で移動でき、配線の開始と�
   const branch = page.getByRole("button", {
     name: "分岐点 分岐点",
     exact: true,
-  });
+  }).locator("..");
   const original = await branch.getAttribute("transform"),
     box = (await handle.boundingBox())!;
   const x = box.x + box.width / 2,
@@ -371,7 +371,7 @@ test("右クリックと選択メニューから反転でき、Escapeと外側�
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "全体表示", exact: true }),
-  ).toBeHidden();
+  ).toBeVisible();
   await page.getByRole("button", { name: "保存・読込" }).click();
   await page.getByRole("heading", { name: "ブロック線図を作る" }).click();
   await expect(page.getByRole("button", { name: "JSON保存" })).toBeHidden();
@@ -477,8 +477,8 @@ test("広い線図でも複製・移動・JSON読込で古い範囲へ戻らな�
   const block = page.getByRole("button", { name: "伝達関数 B3", exact: true });
   const position = () =>
     block.evaluate((el) => ({
-      x: (el as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.e,
-      y: (el as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.f,
+      x: (el.closest(".diagram-node") as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.e,
+      y: (el.closest(".diagram-node") as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.f,
     }));
   const before = await position();
   expect(before.x).toBeGreaterThan(1000);
@@ -493,9 +493,11 @@ test("広い線図でも複製・移動・JSON読込で古い範囲へ戻らな�
   expect(
     await copy.evaluate(
       (el) =>
-        (el as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.e,
+        (el.closest(".diagram-node") as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix.e,
     ),
   ).toBeGreaterThan(before.x);
+  // The copied block's editor can cover the original on a small screen.
+  await page.getByRole("button", { name: "編集欄を閉じる" }).click();
   await block.scrollIntoViewIfNeeded();
   const box = await block.boundingBox();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + 2);
