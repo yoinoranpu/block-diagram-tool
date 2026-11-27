@@ -493,15 +493,15 @@ export default function App() {
           <span className="brand-icon" aria-hidden="true">
             ▱
           </span>
-          <span>
-            制御ブロック線図<span className="brand-suffix">ノート</span>
-          </span>
+          <div className="brand-copy">
+            <h1 className="brand-title">制御ブロック線図<span className="brand-suffix">ノート</span></h1>
+            <p className="brand-purpose">ブロック線図から伝達関数を計算</p>
+          </div>
           <span className="version">β</span>
         </div>
         <span className="header-note">ログイン不要 · ブラウザ内で計算</span>
       </header>
       <main>
-        <h1 className="visually-hidden">制御ブロック線図と伝達関数の計算</h1>
         <nav className="tabs" aria-label="計算モード">
           <button
             aria-label="01 線図から伝達関数"
@@ -662,7 +662,7 @@ export default function App() {
                     <span>
                       {wire
                         ? "● 接続先の白い入力口を選んでください。合流は白丸の加算点へ。"
-                        : "青い出力口 → 白い入力口で配線。ブロックを選ぶと図上で式を入力できます。掛け算は *。"}
+                        : "まず例題を選んで計算。ブロックを選ぶと式を編集できます。青い出力口→白い入力口で配線。"}
                     </span>
                     {wire && (
                       <button onClick={() => setWire(undefined)}>
