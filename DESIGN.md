@@ -86,3 +86,15 @@
 ## 未確認を隠さない
 
 自動テスト、ブラウザの目視確認、実機検証、初見ユーザーの5秒テストは別物。実際に行っていない確認を成功扱いにしない。利用できないデザインスキルを利用したと書かない。新しいスキルを使う場合も、このサイトの目的と機能を優先する。
+
+## 案内文を置く判断（2026-11-28）
+
+常時表示するのは、ボタン名・図の記号だけでは分からず、その場の操作に必要な情報。配線の出力→入力の凡例と、配線開始後の次の操作は残す。計算方法の長い誘導や、未選択時に全編集機能を列挙する説明は繰り返さない。
+
+詳しい使い方は「操作ガイド」で任意に開けるようにする。選択後には既存の編集・複製・削除・符号変更の操作そのものを表示する。隠した説明を読まないと必須操作ができない構造にしない。操作名をアイコンだけに置き換えない。
+
+参照・確認した公開指針：
+- [GOV.UK Details](https://design-system.service.gov.uk/components/details/)：一部のユーザーだけが必要とする補足を折りたたみ、多くの人に必要な情報は隠さない。見出しは短く具体的にする。
+- [GOV.UK Text input / Hint text](https://design-system.service.gov.uk/components/text-input/#hint-text)：ヒントは短い単純な文とし、長い説明を詰め込まない。入力欄向けの指針なので、サイト全体の文章を一律に削る根拠にはしない。
+
+上記は公式サイトへの取得が環境の通信制限で失敗したため、[Detailsの公式公開ソース](https://github.com/alphagov/govuk-design-system/blob/main/src/components/details/index.md)と[Text inputの公式公開ソース](https://github.com/alphagov/govuk-design-system/blob/main/src/components/text-input/index.md)を読んで確認。NN/gの記事は取得できず、今回読んだ根拠には含めない。

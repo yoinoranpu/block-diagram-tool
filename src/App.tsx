@@ -659,11 +659,20 @@ export default function App() {
 
                   </div>
                   <div className={`canvas-guide ${wire ? "wiring" : ""}`}>
-                    <span>
-                      {wire
-                        ? "● 接続先の白い入力口を選んでください。合流は白丸の加算点へ。"
-                        : "まず例題を選んで計算。ブロックを選ぶと式を編集できます。青い出力口→白い入力口で配線。"}
-                    </span>
+                    {wire ? (
+                      <span role="status">接続先の白い入力口を選んでください。</span>
+                    ) : (
+                      <details className="editor-help">
+                        <summary>操作ガイド</summary>
+                        <ul>
+                          <li>ブロックを選ぶと、図の上で式を編集できます。</li>
+                          <li>要素を選ぶと、複製・削除・位置調整の操作が表示されます。</li>
+                          <li>配線は青い出力口、白い入力口の順に選びます。合流には加算点を使います。</li>
+                          <li>加算点の入力にある ＋ / − を押すと符号を切り替えられます。</li>
+                        </ul>
+                      </details>
+                    )}
+                    {!wire && <span className="connection-legend">配線：<span className="legend-output" aria-hidden="true">●</span> 出力 → <span className="legend-input" aria-hidden="true">○</span> 入力</span>}
                     {wire && (
                       <button onClick={() => setWire(undefined)}>
                         配線を中止
@@ -729,7 +738,7 @@ export default function App() {
                     <span>{saveStatus}</span>
                   </div>
                   <div
-                    hidden={n?.kind === "block" && !showDetails}
+                    hidden={(!n && !e) || (n?.kind === "block" && !showDetails)}
                     className={`inspector ${n || e ? "active" : ""}`}
                     role={n || e ? "region" : undefined}
                     aria-label={n || e ? "選択した要素の編集" : undefined}
@@ -865,14 +874,7 @@ export default function App() {
                           </button>
                         )}
                       </>
-                    ) : (
-                      <p className="inspector-empty">
-                        要素を選ぶと、式の編集・複製・削除・位置調整ができます。
-                        <br />
-                        加算点の配線上の ＋ / −
-                        をタップすると符号が切り替わります。
-                      </p>
-                    )}
+                    ) : null}
                   </div>
                 </>
               ) : (

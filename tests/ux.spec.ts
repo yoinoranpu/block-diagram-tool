@@ -28,3 +28,17 @@ test('スマホで要素追加を隠さず、計算後に答えの先頭へ移�
   await expect(page.getByRole('heading', { name: 'ブロック線図を作る' })).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('補足を任意で開け、配線中の次の操作は常に表示する', async ({ page }) => {
+  await page.goto('/');
+  const guide = page.locator('.editor-help');
+  await expect(guide.locator('ul')).not.toBeVisible();
+  await page.getByText('操作ガイド', { exact: true }).click();
+  await expect(guide.getByText('ブロックを選ぶと、図の上で式を編集できます。')).toBeVisible();
+  await page.getByText('操作ガイド', { exact: true }).click();
+  await expect(guide.locator('ul')).not.toBeVisible();
+  await page.getByRole('button', { name: 'G の出力接続口', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: '接続先の白い入力口' })).toBeVisible();
+  await page.getByRole('button', { name: '配線を中止', exact: true }).click();
+  await expect(guide).toBeVisible();
+});
